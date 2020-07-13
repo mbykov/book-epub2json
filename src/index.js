@@ -118,6 +118,7 @@ export async function epub2json(bpath)  {
     return getMD(zfile)
   }))
     .then(res=> {
+      res = _.compact(res)
       // res = _.sortBy(res, 'name')
       res.sort(function(a, b){
         return naturalCompare(a.name, b.name)
@@ -134,7 +135,9 @@ function getMD(zfile) {
   return zfile
     .async('text')
     .then(html => {
-      html = html.split(/<body [^>]*>/)[1]
+      // log('_HTML', html)
+      html = html.split(/<body[^>]*>/)[1]
+      if (!html) return
       html = html.split(/<\/body>/)[0]
       // log('_MD-html:', html)
       let md = tdn.turndown(html)
