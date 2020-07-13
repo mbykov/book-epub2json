@@ -43,21 +43,29 @@ export async function epub2json(bpath)  {
       // log('_zfiles:', zfiles)
       return {content, zfiles}
     })
-  log('_after-cont:', content)
-  log('_after-zfiles:', zfiles)
+  // log('_after-cont:', content)
+  // log('_after-zfiles:', zfiles)
 
-  content
-    .async('text')
-    .then(data=> {
-      return xml2js.parseStringPromise(data).then(function (jsonObj) {
-        // return jsonObj
-        log('__CONT-jsonObj', jsonObj)
+  let descr = await content
+      .async('text')
+      .then(data=> {
+        return xml2js.parseStringPromise(data).then(function (content) {
+          let version = content.package.$.version
+          let metadata = content.package.metadata[0]
+          // let author = metadata['dc:creator'][0]._
+          let author = metadata['dc:creator']
+          let title = metadata['dc:title'][0]
+          let lang = metadata['dc:language'][0]
+          let descr = {version, author, title, lang}
+          // log('_descr_', descr)
+          return descr
+        })
       })
+  log('_DESCR', descr)
 
-    })
-  // Promise.all(zfiles.map(zfile=> {
-    // return getMD(zfile)
-  // }))
+  Promise.all(zfiles.map(zfile=> {
+    return getMD(zfile)
+  }))
 
 }
 
@@ -65,14 +73,9 @@ function getMD(zfile) {
   return zfile
     .async('text')
     .then(data => {
-      if (/content.opf/.test(zfile.name)) {
-        return xml2js.parseStringPromise(data).then(function (jsonObj) {
-          return jsonObj
-        })
-      } else {
-        let md = tdn.turndown(data).trim()
-        return {idx: zfile.idx, name: zfile.name, md: md}
-      }
+      log('___ZF', data)
+      // let md = tdn.turndown(data).trim()
+      // return {idx: zfile.idx, name: zfile.name, md: md}
     })
 }
 
