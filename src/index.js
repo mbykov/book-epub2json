@@ -5,10 +5,12 @@ const fse = require('fs-extra')
 const path = require("path")
 const log = console.log
 const util = require("util")
-
 // new:
 const zip = require("jszip")
 const xml2js = require('xml2js')
+
+// const showdown  = require('showdown')
+// const  converter = new showdown.Converter()
 
 // const isGzip = require('is-gzip')
 // const isZip = require('is-zip');
@@ -19,6 +21,46 @@ const xml2js = require('xml2js')
 // // let decoder = new util.TextDecoder('utf-8')
 
 let insp = (o) => log(util.inspect(o, false, null))
+
+const Turndown = require('turndown')
+const tdn = new Turndown()
+tdn.remove('head')
+tdn.remove('style')
+tdn.remove('title')
+
+let rule1 = {
+  filter: 'h1',
+  replacement: function (content, node) {
+    return replaceHeader(1, content, node)
+  }
+}
+tdn.addRule('h1', rule1)
+
+let rule2 = {
+  filter: 'h2',
+  replacement: function (content, node) {
+    return replaceHeader(2, content, node)
+  }
+}
+tdn.addRule('h2', rule2)
+
+let rule3 = {
+  filter: 'h3',
+  replacement: function (content, node) {
+    return replaceHeader(3, content, node)
+  }
+}
+tdn.addRule('h3', rule3)
+
+function replaceHeader(level, content, node) {
+  let nodeid = node.getAttribute('id')
+  let hashes = '#'.repeat(level) + ' '
+  let header = ''
+  if (nodeid) header = 'header: ' + level + ' ' + nodeid + '\n\n'
+  header += hashes
+  header += content
+  return header
+}
 
 // const convert = require('xml-js')
 
@@ -31,20 +73,20 @@ async function parseZip(fbpath) {
 export async function epub2json(bpath)  {
   const data = await fse.readFile(bpath)
   log('_data', data.length)
-  const {content, zfiles} = await zip.loadAsync(data)
+  let {content, zfiles} = await zip.loadAsync(data)
     .then(function (zip) {
       // console.log('_ZIP.FILES', zip.files);
       let content = _.find(zip.files, file=> { return /\.opf/.test(file.name) })
-      let zfiles = _.filter(zip.files, file=> { return /\.xhtml/.test(file.name) }) // \.html, .xhtml
-      // zfiles = _.sortBy(zfiles, file=> { return file.name })
-      // zfiles.forEach((file, idx)=> { file.idx = idx})
+      let zfiles = _.filter(zip.files, file=> { return /\.x?html/.test(file.name) }) // \.html, .xhtml
+      zfiles = _.sortBy(zfiles, file=> { return file.name })
+      zfiles.forEach((file, idx)=> { file.idx = idx})
       // zfiles.unshift(content)
       // log('content:', content)
       // log('_zfiles:', zfiles)
       return {content, zfiles}
     })
   // log('_after-cont:', content)
-  // log('_after-zfiles:', zfiles)
+  log('_after-zfiles_:', zfiles.length)
 
   let descr = await content
       .async('text')
@@ -63,17 +105,40 @@ export async function epub2json(bpath)  {
       })
   log('_DESCR', descr)
 
+  // zfiles = zfiles.slice(5, 10)
+
   Promise.all(zfiles.map(zfile=> {
     return getMD(zfile)
   }))
+    .then(res=> {
+      res = _.sortBy(res, file=> file.idx)
+      let mds = res.map(md=> md.mds)
+      let md = _.flatten(mds)
+      let headers = md.filter(row=> /#/.test(row))
+      log('_MD-res:', headers)
+    })
 
 }
 
 function getMD(zfile) {
   return zfile
     .async('text')
-    .then(data => {
-      log('___ZF', data)
+    .then(html => {
+      // log('___ZF', html)
+      // html = html.split('<body>')[1]
+      // if (!html) return null
+      // html = html.split('</body>')[0]
+      // html = '<p>please kuku</p>'
+
+      let md = tdn.turndown(html).trim()
+      let mds = md.split('\n').map(md=> md.trim())
+      mds = _.compact(mds)
+      mds = mds.filter(md => !/header:/.test(md))
+      mds = mds.slice(0,3)
+      return {idx: zfile.idx, name: zfile.name, mds: mds}
+      // return mds
+
+      // return converter.makeMarkdown(html)
       // let md = tdn.turndown(data).trim()
       // return {idx: zfile.idx, name: zfile.name, md: md}
     })

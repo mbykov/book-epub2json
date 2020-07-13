@@ -6,7 +6,7 @@ const log = console.log
 let bpath
 
 bpath = '../test/Being_Different.epub'
-bpath = '../test/minimal-v2.epub'
+// bpath = '../test/minimal-v2.epub'
 
 bpath = path.resolve(__dirname, bpath)
 log('RUN: BPATH', bpath)
