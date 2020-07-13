@@ -83,17 +83,10 @@ export async function epub2json(bpath)  {
       zfiles.sort(function(a, b){
         return naturalCompare(a.name, b.name)
       })
-
-      // zfiles.forEach((file, idx)=> { file.idx = idx})
-      // zfiles.unshift(content)
-      // log('content:', content)
-      // log('_zfiles:', zfiles)
-      // let names = zfiles.map(zfile=> zfile.name)
-      // log('_znames:', names)
       return {content, zfiles}
     })
   // log('_after-cont:', content)
-  log('_after-zfiles_:', zfiles.length)
+  // log('_after-zfiles_:', zfiles.length)
 
   let descr = await content
       .async('text')
@@ -106,7 +99,7 @@ export async function epub2json(bpath)  {
           let title = metadata['dc:title'][0]
           let lang = metadata['dc:language'][0]
           let descr = {version, author, title, lang}
-          // log('_descr_', descr)
+          log('_descr_', descr)
           return descr
         })
       })
@@ -119,7 +112,6 @@ export async function epub2json(bpath)  {
   }))
     .then(res=> {
       res = _.compact(res)
-      // res = _.sortBy(res, 'name')
       res.sort(function(a, b){
         return naturalCompare(a.name, b.name)
       })
@@ -128,35 +120,23 @@ export async function epub2json(bpath)  {
       let headers = md.filter(row=> /#/.test(row))
       log('_MD-res:', md)
     })
-
 }
 
 function getMD(zfile) {
   return zfile
     .async('text')
     .then(html => {
-      // log('_HTML', html)
       html = html.split(/<body[^>]*>/)[1]
       if (!html) return
       html = html.split(/<\/body>/)[0]
-      // log('_MD-html:', html)
       let md = tdn.turndown(html)
-      // log('_MD-md:', md)
       let mds = md.split('\n').map(md=> md.trim())
       mds = _.compact(mds)
       mds = mds.filter(md => !/header:/.test(md))
       mds = mds.slice(0,3)
       return {idx: zfile.idx, name: zfile.name, mds: mds}
-      // return mds
-
-      // return converter.makeMarkdown(html)
-      // let md = tdn.turndown(data).trim()
-      // return {idx: zfile.idx, name: zfile.name, md: md}
     })
 }
-
-
-
 
 function cleanText(str) {
   if (!str) return ''
