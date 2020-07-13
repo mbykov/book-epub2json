@@ -105,7 +105,7 @@ export async function epub2json(bpath)  {
       })
   log('_DESCR', descr)
 
-  // zfiles = zfiles.slice(5, 10)
+  zfiles = zfiles.slice(2, 5)
 
   Promise.all(zfiles.map(zfile=> {
     return getMD(zfile)
@@ -124,13 +124,8 @@ function getMD(zfile) {
   return zfile
     .async('text')
     .then(html => {
-      // log('___ZF', html)
-      // html = html.split('<body>')[1]
-      // if (!html) return null
-      // html = html.split('</body>')[0]
-      // html = '<p>please kuku</p>'
-
       let md = tdn.turndown(html).trim()
+      log('_MD-md:', html)
       let mds = md.split('\n').map(md=> md.trim())
       mds = _.compact(mds)
       mds = mds.filter(md => !/header:/.test(md))
