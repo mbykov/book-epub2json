@@ -8,6 +8,7 @@ const util = require("util")
 // new:
 const zip = require("jszip")
 const xml2js = require('xml2js')
+const naturalCompare = require("natural-compare-lite")
 
 // const showdown  = require('showdown')
 // const  converter = new showdown.Converter()
@@ -78,11 +79,17 @@ export async function epub2json(bpath)  {
       // console.log('_ZIP.FILES', zip.files);
       let content = _.find(zip.files, file=> { return /\.opf/.test(file.name) })
       let zfiles = _.filter(zip.files, file=> { return /\.x?html/.test(file.name) }) // \.html, .xhtml
-      zfiles = _.sortBy(zfiles, file=> { return file.name })
-      zfiles.forEach((file, idx)=> { file.idx = idx})
+      // zfiles = _.sortBy(zfiles, 'name')
+      zfiles.sort(function(a, b){
+        return naturalCompare(a.name, b.name)
+      })
+
+      // zfiles.forEach((file, idx)=> { file.idx = idx})
       // zfiles.unshift(content)
       // log('content:', content)
       // log('_zfiles:', zfiles)
+      // let names = zfiles.map(zfile=> zfile.name)
+      // log('_znames:', names)
       return {content, zfiles}
     })
   // log('_after-cont:', content)
@@ -105,17 +112,20 @@ export async function epub2json(bpath)  {
       })
   log('_DESCR', descr)
 
-  zfiles = zfiles.slice(2, 5)
+  // zfiles = zfiles.slice(0, 5)
 
   Promise.all(zfiles.map(zfile=> {
     return getMD(zfile)
   }))
     .then(res=> {
-      res = _.sortBy(res, file=> file.idx)
+      // res = _.sortBy(res, 'name')
+      res.sort(function(a, b){
+        return naturalCompare(a.name, b.name)
+      })
       let mds = res.map(md=> md.mds)
       let md = _.flatten(mds)
       let headers = md.filter(row=> /#/.test(row))
-      log('_MD-res:', headers)
+      log('_MD-res:', md)
     })
 
 }
@@ -124,8 +134,11 @@ function getMD(zfile) {
   return zfile
     .async('text')
     .then(html => {
-      let md = tdn.turndown(html).trim()
-      log('_MD-md:', html)
+      html = html.split(/<body [^>]*>/)[1]
+      html = html.split(/<\/body>/)[0]
+      // log('_MD-html:', html)
+      let md = tdn.turndown(html)
+      // log('_MD-md:', md)
       let mds = md.split('\n').map(md=> md.trim())
       mds = _.compact(mds)
       mds = mds.filter(md => !/header:/.test(md))
