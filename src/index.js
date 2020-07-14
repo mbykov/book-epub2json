@@ -77,9 +77,15 @@ export async function epub2json(bpath, dgl)  {
           let version = content.package.$.version
           let metadata = content.package.metadata[0]
           // let author = (metadata['dc:creator']) ? metadata['dc:creator'][0]._ : ''
-          let author = metadata['dc:creator'][0]
-          let title = metadata['dc:title'][0]
-          let lang = metadata['dc:language'][0]
+          let author = '', title = '', lang = ''
+          if (version == '2.0') {
+            author = metadata['dc:creator'][0]
+            title = metadata['dc:title'][0]
+          } else if (version == '3.0') {
+            author = metadata['dc:creator'][0]._
+            title = metadata['dc:title'][0]._
+          }
+          lang = metadata['dc:language'][0]
           if (lang) {
             lang = lang.split('-')[0]
             let iso = _.find(iso6393, iso=> iso.iso6391 == lang)
@@ -91,26 +97,11 @@ export async function epub2json(bpath, dgl)  {
         })
       })
   // log('_DESCR', descr)
-  // zfiles = await zfiles.slice(10, 15)
+  // zfiles = zfiles.slice(21, 22)
 
   const mds = await html2md(zfiles)
-
   if (!dgl) return {descr: descr, mds: mds}
-
   export2md(bpath, descr, mds)
-}
-
-function export2md(bpath, descr, mds) {
-  const dirpath = path.dirname(bpath)
-  let mdpath = cleanDname(descr.author, descr.title)
-  let dglpath = [mdpath, 'dgl'].join('.')
-  dglpath = path.join(dirpath, dglpath)
-  mdpath = [mdpath, 'md'].join('.')
-  mdpath = path.join(dirpath, mdpath)
-  descr.text = ['file:://', mdpath].join('')
-  let rows = mds.join('\n')
-  fse.writeJson(dglpath, descr, {spaces: 2})
-  fse.writeFile(mdpath, rows)
 }
 
 async function html2md(zfiles) {
@@ -122,13 +113,15 @@ async function html2md(zfiles) {
       res.sort(function(a, b){
         return naturalCompare(a.name, b.name)
       })
-      let mds = res.map(md=> md.mds)
-      let md = _.flatten(mds)
-      let headers = md.filter(row=> /#/.test(row))
+      let mds = _.flatten(res.map(md=> md.mds))
+      // let md = _.flatten(mds)
+      // let headers = md.filter(row=> /#/.test(row))
       // log('_MD-res:', md)
-      return headers
+      return mds
     })
 }
+
+// — m-dash
 
 function getMD(zfile) {
   return zfile
@@ -138,18 +131,38 @@ function getMD(zfile) {
       if (!html) return
       html = html.split(/<\/body>/)[0]
       let md = tdn.turndown(html)
-      let mds = md.split('\n').map(md=> cleanText(md.trim()))
+      // let mds = md.split('\n').map(md=> cleanText(md.trim()))
+      let mds = md.split('\n')
       mds = _.compact(mds)
+      // mds.forEach(md=> md.trim())
+      mds = mds.map(md=> cleanText(md.trim()))
       mds = mds.filter(md => !/header:/.test(md))
-      mds = mds.slice(0,3)
-      return {idx: zfile.idx, name: zfile.name, mds: mds}
+      // mds = mds.slice(0,9)
+      return {name: zfile.name, mds: mds}
     })
 }
 
 function cleanText(str) {
   if (!str) return ''
-  let clean = str.replace(/\s\s+/g, ' ')
+  // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=128
+  let clean = str.replace(/\s\s+/g, ' ') // .replace(/—/g, ' - ').replace(/’/g, '\'')
   return clean
+}
+
+function export2md(bpath, descr, mds) {
+  const dirpath = path.dirname(bpath)
+  let mdpath = cleanDname(descr.author, descr.title)
+  let dglpath = [mdpath, 'dgl'].join('.')
+  dglpath = path.join(dirpath, dglpath)
+  mdpath = [mdpath, 'md'].join('.')
+  mdpath = path.join(dirpath, mdpath)
+  descr.text = ['file:://', mdpath].join('')
+  // log('_M-before', mds)
+  fse.writeJson(dglpath, descr, {spaces: 2})
+  let file = fse.createWriteStream(mdpath)
+  file.on('error', function(err) { log('ERR:', err) })
+  mds.forEach(row => file.write(`${row}\r\n\r\n`))
+  file.end()
 }
 
 export function cleanDname(author = '', title = '') {
