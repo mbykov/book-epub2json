@@ -54,14 +54,6 @@ function replaceHeader(level, content, node) {
   return header
 }
 
-export async function export2md(bpath) {
-  epub2json(bpath)
-    .then(res=> {
-      if (!res) return
-      log('__RES', res)
-    })
-}
-
 export async function epub2json(bpath, dgl)  {
   const data = await fse.readFile(bpath)
   // log('_data', data.length)
@@ -98,22 +90,23 @@ export async function epub2json(bpath, dgl)  {
           return descr
         })
       })
-  log('_DESCR', descr)
+  // log('_DESCR', descr)
   // zfiles = await zfiles.slice(10, 15)
 
   const mds = await html2md(zfiles)
-  // log('_MDS_', mds)
-  // return md
+
   if (!dgl) return {descr: descr, mds: mds}
+
+  export2md(bpath, descr, mds)
+}
+
+function export2md(bpath, descr, mds) {
   const dirpath = path.dirname(bpath)
-  log('_DIR', dirpath)
   let mdpath = cleanDname(descr.author, descr.title)
   let dglpath = [mdpath, 'dgl'].join('.')
   dglpath = path.join(dirpath, dglpath)
-  log('_DGL', dglpath)
   mdpath = [mdpath, 'md'].join('.')
   mdpath = path.join(dirpath, mdpath)
-  log('_MD', mdpath)
   descr.text = ['file:://', mdpath].join('')
   let rows = mds.join('\n')
   fse.writeJson(dglpath, descr, {spaces: 2})
