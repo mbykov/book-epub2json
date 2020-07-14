@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "fs-extra": "^8.1.0",
+    "iso-639-3": "^2.1.0",
     "jszip": "^3.5.0",
     "lodash": "^4.17.15",
     "natural-compare-lite": "^1.4.0",

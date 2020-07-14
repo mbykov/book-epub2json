@@ -3,21 +3,21 @@ const path = require("path")
 const log = console.log
 // const fse = require('fs-extra')
 
-let bpath
+let export2dgl = process.argv.slice(2)[0] || false
 
+let bpath
 bpath = '../test/Being_Different.epub'
 // bpath = '../test/minimal-v2.epub'
-bpath = '../test/phoenix-ru.epub'
+// bpath = '../test/phoenix-ru.epub'
 bpath = '../test/phoenix-en.epub'
 
 bpath = path.resolve(__dirname, bpath)
 log('RUN: BPATH', bpath)
 
-epub2json(bpath)
+epub2json(bpath, export2dgl)
   .then(res=> {
-    // if (!res) return
-    // log('__RES', res)
-
+    if (!res) return
+    log('__RES', res)
     return
 
     if (!res.docs) return
