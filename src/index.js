@@ -78,15 +78,21 @@ export async function epub2json(bpath, dgl)  {
           let metadata = content.package.metadata[0]
           // let author = (metadata['dc:creator']) ? metadata['dc:creator'][0]._ : ''
           let author = '', title = '', lang = ''
-          if (version == '2.0') {
+          // log('_M', version, metadata)
+          if (metadata['dc:creator']) {
             author = metadata['dc:creator'][0]
-            title = metadata['dc:title'][0]
-          } else if (version == '3.0') {
-            author = metadata['dc:creator'][0]._
-            title = metadata['dc:title'][0]._
+            if (author._) author = author._
           }
-          lang = metadata['dc:language'][0]
+          if (metadata['dc:title']) {
+            title = metadata['dc:title'][0]
+            if (title._) title = title._
+          }
+          if (metadata['dc:language']) {
+            lang = metadata['dc:language'][0]
+            if (lang._) lang = lang._
+          }
           if (lang) {
+            if (lang._) lang = lang._
             lang = lang.split('-')[0]
             let iso = _.find(iso6393, iso=> iso.iso6391 == lang)
             if (iso) lang = iso.iso6393
@@ -100,8 +106,26 @@ export async function epub2json(bpath, dgl)  {
   // zfiles = zfiles.slice(21, 22)
 
   const mds = await html2md(zfiles)
-  if (!dgl) return {descr: descr, mds: mds}
-  export2md(bpath, descr, mds)
+  // let headers = mds.filter(row=> /#/.test(row))
+  // let min = headers.map(header=> (header.match(/#/g) || []).length)
+  // let min = _.min(headers.map(header=> (header.match(/#/g) || []).length))
+  // log('_MIN', min)
+
+  let doc
+  let docs = []
+  mds.forEach(md=> {
+    doc = {}
+    if (md.match(/^#/)) {
+      doc.level = md.match(/#/g).length
+    }
+    doc.md = md
+    docs.push(doc)
+  })
+
+  log('____DOCS', docs.length)
+
+  if (dgl) export2md(bpath, descr, mds)
+  else return {descr, docs}
 }
 
 async function html2md(zfiles) {
