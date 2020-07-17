@@ -8,7 +8,7 @@ const util = require("util")
 // new:
 const zip = require("jszip")
 const xml2js = require('xml2js')
-const naturalCompare = require("natural-compare-lite")
+// const naturalCompare = require("natural-compare-lite")
 const iso6393 = require('iso-639-3')
 // const iconv = require('iconv-lite');
 
@@ -69,9 +69,9 @@ export async function epub2json(bpath, dgl)  {
 
       let content = _.find(zip.files, file=> { return /\.opf/.test(file.name) })
       let zfiles = _.filter(zip.files, file=> { return /\.x?html/.test(file.name) }) // \.html, .xhtml
-      zfiles.sort(function(a, b){
-        return naturalCompare(a.name, b.name)
-      })
+      // zfiles.sort(function(a, b){
+        // return naturalCompare(a.name, b.name)
+      // })
       return {content, tocfile, zfiles}
     })
   // log('_after-cont:', content)
@@ -81,7 +81,7 @@ export async function epub2json(bpath, dgl)  {
       .async('text')
       .then(data=> {
         return xml2js.parseStringPromise(data).then(function (tocdata) {
-          log('_TOC', tocdata)
+          // log('_TOC', tocdata)
           // log('_ncx', tocdata.ncx)
           let navMap = tocdata.ncx.navMap
           let navPoint = navMap[0].navPoint
@@ -89,28 +89,17 @@ export async function epub2json(bpath, dgl)  {
           let toc = navPoint.map(row=> {
             return {playOrder: row.$.playOrder, src: row.content[0].$.src}
           })
-          // log('_container', tocdata.container.rootfiles[0].rootfile)
-          // log('_navMap', tocdata.ncx.navMap)
-          // log('_navPoint', tocdata.ncx.navMap[0].navPoint)
           return toc
         })
       })
 
-  log('_TOC_:', toc)
-  log('_ZFILES_:', zfiles.length)
-  // let rename, ordered = []
-  // toc.forEach(row=> {
-  //   rename = new RegExp(row.src)
-  //   let zfile = zfiles.find(file=> rename.test(file.name))
-  //   ordered.push(zfile)
-  // })
-  // log('_ORDERED_:', ordered)
+  // log('_TOC_:', toc)
+  // log('_ZFILES_:', zfiles.length)
 
   let descr = await content
       .async('text')
       .then(data=> {
         return xml2js.parseStringPromise(data).then(function (content) {
-          // log('_C', content)
           let version = content.package.$.version
           let metadata = content.package.metadata[0]
           // let author = (metadata['dc:creator']) ? metadata['dc:creator'][0]._ : ''
@@ -143,7 +132,6 @@ export async function epub2json(bpath, dgl)  {
   // zfiles = zfiles.slice(21, 22)
 
   const mds = await html2md(zfiles)
-  // const mds = await html2md(ordered)
 
   let rename, ordered = []
   toc.forEach(row=> {
@@ -151,7 +139,7 @@ export async function epub2json(bpath, dgl)  {
     let md = mds.find(file=> rename.test(file.name))
     ordered.push(md)
   })
-  log('_ORDERED_:', ordered.length)
+  // log('_ORDERED_:', ordered.length)
 
   let clean, cleans = []
   ordered.forEach(result=> {
@@ -174,7 +162,6 @@ export async function epub2json(bpath, dgl)  {
   })
 
   // log('____DOCS', docs.length)
-
   if (dgl) export2md(bpath, descr, mds)
   else return {descr, docs}
 }
@@ -186,24 +173,6 @@ async function html2md(zfiles) {
     .then(res=> {
       res = _.compact(res)
       return res
-      // res.sort(function(a, b){
-      //   return naturalCompare(a.name, b.name)
-      // })
-
-      let clean, cleans = []
-      // res.forEach(result=> {
-      //   result.mds.forEach((row, idx)=> {
-      //     clean = row
-      //     if (idx) clean = row.replace(/#/g, '')
-      //     cleans.push(clean)
-      //   })
-      // })
-
-      let mds = _.flatten(res.map(md=> md.mds))
-      // let md = _.flatten(mds)
-      // let headers = md.filter(row=> /#/.test(row))
-      // log('_MD-res:', md)
-      return cleans
     })
 }
 
@@ -228,9 +197,9 @@ function getMD(zfile) {
     })
 }
 
+// https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=128
 function cleanText(str) {
   if (!str) return ''
-  // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=128
   let clean = str.replace(/\s\s+/g, ' ') // .replace(/—/g, ' - ').replace(/’/g, '\'')
   return clean
 }
@@ -243,7 +212,6 @@ function export2md(bpath, descr, mds) {
   mdpath = [mdpath, 'md'].join('.')
   mdpath = path.join(dirpath, mdpath)
   descr.text = ['file:://', mdpath].join('')
-  // log('_M-before', mds)
   fse.writeJson(dglpath, descr, {spaces: 2})
   let file = fse.createWriteStream(mdpath)
   file.on('error', function(err) { log('ERR:', err) })
