@@ -143,17 +143,18 @@ export async function epub2json(bpath, dgl)  {
 
   // todo: already - оставить только первый header в разделе, остальные заменить на bold
   // todo: объеденить с созданием docs
-  let doc, docs = []
+  let doc, level, docs = []
   let header = false
   ordered.forEach(section=> {
     header = false
     section.mds.forEach((row, idx)=> {
       doc = {}
       if (/#/.test(row)) {
+        level = row.match(/#/g).length
+        row = row.replace(/#/g, '').trim()
         if (header) row = ['**', row, '**'].join('')
-        else header = true, doc.level = row.match(/#/g).length
+        else header = true, doc.level = level
       }
-      row = row.replace(/#/g, '')
       doc.md = row.trim()
       docs.push(doc)
     })
