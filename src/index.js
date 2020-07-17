@@ -141,24 +141,22 @@ export async function epub2json(bpath, dgl)  {
   })
   // log('_ORDERED_:', ordered.length)
 
-  let clean, cleans = []
-  ordered.forEach(result=> {
-    result.mds.forEach((row, idx)=> {
-      clean = row
-      if (idx) clean = row.replace(/#/g, '')
-      cleans.push(clean)
+  // todo: already - оставить только первый header в разделе, остальные заменить на bold
+  // todo: объеденить с созданием docs
+  let doc, docs = []
+  let header = false
+  ordered.forEach(section=> {
+    header = false
+    section.mds.forEach((row, idx)=> {
+      doc = {}
+      if (/#/.test(row)) {
+        if (header) row = ['**', row, '**'].join('')
+        else header = true, doc.level = row.match(/#/g).length
+      }
+      row = row.replace(/#/g, '')
+      doc.md = row.trim()
+      docs.push(doc)
     })
-  })
-
-  let doc
-  let docs = []
-  cleans.forEach(md=> {
-    doc = {}
-    if (md.match(/^#/)) {
-      doc.level = md.match(/#/g).length
-    }
-    doc.md = md
-    docs.push(doc)
   })
 
   // log('____DOCS', docs.length)
