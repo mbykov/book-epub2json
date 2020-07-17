@@ -58,37 +58,53 @@ function replaceHeader(level, content, node) {
 export async function epub2json(bpath, dgl)  {
   const data = await fse.readFile(bpath)
   // log('_data', data.length)
-  let {content, zfiles} = await zip.loadAsync(data)
+  let {content, tocfile, zfiles} = await zip.loadAsync(data)
     .then(function (zip) {
       log('_ZIP.FILES', zip.files.length);
 
       // let names = _.map(zip.files, file=> file.name)
       // names = names.filter(name=> !/image/.test(name))
       // log('_NAMES', names);
-      // let tocfile = _.find(zip.files, file=> { return /toc.ncx/.test(file.name) })
+      let tocfile = _.find(zip.files, file=> { return /toc.ncx/.test(file.name) })
 
       let content = _.find(zip.files, file=> { return /\.opf/.test(file.name) })
       let zfiles = _.filter(zip.files, file=> { return /\.x?html/.test(file.name) }) // \.html, .xhtml
       zfiles.sort(function(a, b){
         return naturalCompare(a.name, b.name)
       })
-      return {content, zfiles}
+      return {content, tocfile, zfiles}
     })
   // log('_after-cont:', content)
   // log('_after-zfiles_:', zfiles.length)
 
-  // let toc = await tocfile
-  //     .async('text')
-  //     .then(data=> {
-  //       return xml2js.parseStringPromise(data).then(function (tocdata) {
-  //         log('_TOC', tocdata)
-  //         // log('_ncx', tocdata.ncx)
-  //         // log('_container', tocdata.container.rootfiles[0].rootfile)
-  //         // log('_navMap', tocdata.ncx.navMap)
-  //         // log('_navPoint', tocdata.ncx.navMap[0].navPoint)
-  //         return {}
-  //       })
-  //     })
+  let toc = await tocfile
+      .async('text')
+      .then(data=> {
+        return xml2js.parseStringPromise(data).then(function (tocdata) {
+          log('_TOC', tocdata)
+          // log('_ncx', tocdata.ncx)
+          let navMap = tocdata.ncx.navMap
+          let navPoint = navMap[0].navPoint
+          // log('_navMap', navPoint)
+          let toc = navPoint.map(row=> {
+            return {playOrder: row.$.playOrder, src: row.content[0].$.src}
+          })
+          // log('_container', tocdata.container.rootfiles[0].rootfile)
+          // log('_navMap', tocdata.ncx.navMap)
+          // log('_navPoint', tocdata.ncx.navMap[0].navPoint)
+          return toc
+        })
+      })
+
+  log('_TOC_:', toc)
+  log('_ZFILES_:', zfiles.length)
+  // let rename, ordered = []
+  // toc.forEach(row=> {
+  //   rename = new RegExp(row.src)
+  //   let zfile = zfiles.find(file=> rename.test(file.name))
+  //   ordered.push(zfile)
+  // })
+  // log('_ORDERED_:', ordered)
 
   let descr = await content
       .async('text')
@@ -127,14 +143,28 @@ export async function epub2json(bpath, dgl)  {
   // zfiles = zfiles.slice(21, 22)
 
   const mds = await html2md(zfiles)
-  // let headers = mds.filter(row=> /#/.test(row))
-  // let min = headers.map(header=> (header.match(/#/g) || []).length)
-  // let min = _.min(headers.map(header=> (header.match(/#/g) || []).length))
-  // log('_MIN', min)
+  // const mds = await html2md(ordered)
+
+  let rename, ordered = []
+  toc.forEach(row=> {
+    rename = new RegExp(row.src)
+    let md = mds.find(file=> rename.test(file.name))
+    ordered.push(md)
+  })
+  log('_ORDERED_:', ordered.length)
+
+  let clean, cleans = []
+  ordered.forEach(result=> {
+    result.mds.forEach((row, idx)=> {
+      clean = row
+      if (idx) clean = row.replace(/#/g, '')
+      cleans.push(clean)
+    })
+  })
 
   let doc
   let docs = []
-  mds.forEach(md=> {
+  cleans.forEach(md=> {
     doc = {}
     if (md.match(/^#/)) {
       doc.level = md.match(/#/g).length
@@ -155,17 +185,19 @@ async function html2md(zfiles) {
   }))
     .then(res=> {
       res = _.compact(res)
-      res.sort(function(a, b){
-        return naturalCompare(a.name, b.name)
-      })
+      return res
+      // res.sort(function(a, b){
+      //   return naturalCompare(a.name, b.name)
+      // })
+
       let clean, cleans = []
-      res.forEach(result=> {
-        result.mds.forEach((row, idx)=> {
-          clean = row
-          if (idx) clean = row.replace(/#/g, '')
-          cleans.push(clean)
-        })
-      })
+      // res.forEach(result=> {
+      //   result.mds.forEach((row, idx)=> {
+      //     clean = row
+      //     if (idx) clean = row.replace(/#/g, '')
+      //     cleans.push(clean)
+      //   })
+      // })
 
       let mds = _.flatten(res.map(md=> md.mds))
       // let md = _.flatten(mds)
