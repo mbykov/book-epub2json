@@ -1,4 +1,4 @@
-//
+'use strict'
 
 const _ = require('lodash')
 const fse = require('fs-extra')
@@ -14,11 +14,14 @@ const iso6393 = require('iso-639-3')
 
 let insp = (o) => log(util.inspect(o, false, null))
 
-const Turndown = require('turndown')
+// const Turndown = require('turndown')
+import Turndown from 'turndown'
 const tdn = new Turndown()
 tdn.remove('head')
 tdn.remove('style')
 tdn.remove('title')
+
+// module.exports = Turndown
 
 let rule1 = {
   filter: 'h1',

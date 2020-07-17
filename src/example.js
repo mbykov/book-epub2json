@@ -1,3 +1,5 @@
+'use strict'
+
 import { epub2json } from "./index";
 const path = require("path")
 const log = console.log
