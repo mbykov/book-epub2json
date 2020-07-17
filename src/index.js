@@ -21,8 +21,6 @@ tdn.remove('head')
 tdn.remove('style')
 tdn.remove('title')
 
-// module.exports = Turndown
-
 let rule1 = {
   filter: 'h1',
   replacement: function (content, node) {
@@ -62,7 +60,13 @@ export async function epub2json(bpath, dgl)  {
   // log('_data', data.length)
   let {content, zfiles} = await zip.loadAsync(data)
     .then(function (zip) {
-      // log('_ZIP.FILES', zip.files);
+      log('_ZIP.FILES', zip.files.length);
+
+      // let names = _.map(zip.files, file=> file.name)
+      // names = names.filter(name=> !/image/.test(name))
+      // log('_NAMES', names);
+      // let tocfile = _.find(zip.files, file=> { return /toc.ncx/.test(file.name) })
+
       let content = _.find(zip.files, file=> { return /\.opf/.test(file.name) })
       let zfiles = _.filter(zip.files, file=> { return /\.x?html/.test(file.name) }) // \.html, .xhtml
       zfiles.sort(function(a, b){
@@ -73,10 +77,24 @@ export async function epub2json(bpath, dgl)  {
   // log('_after-cont:', content)
   // log('_after-zfiles_:', zfiles.length)
 
+  // let toc = await tocfile
+  //     .async('text')
+  //     .then(data=> {
+  //       return xml2js.parseStringPromise(data).then(function (tocdata) {
+  //         log('_TOC', tocdata)
+  //         // log('_ncx', tocdata.ncx)
+  //         // log('_container', tocdata.container.rootfiles[0].rootfile)
+  //         // log('_navMap', tocdata.ncx.navMap)
+  //         // log('_navPoint', tocdata.ncx.navMap[0].navPoint)
+  //         return {}
+  //       })
+  //     })
+
   let descr = await content
       .async('text')
       .then(data=> {
         return xml2js.parseStringPromise(data).then(function (content) {
+          // log('_C', content)
           let version = content.package.$.version
           let metadata = content.package.metadata[0]
           // let author = (metadata['dc:creator']) ? metadata['dc:creator'][0]._ : ''
@@ -125,7 +143,7 @@ export async function epub2json(bpath, dgl)  {
     docs.push(doc)
   })
 
-  log('____DOCS', docs.length)
+  // log('____DOCS', docs.length)
 
   if (dgl) export2md(bpath, descr, mds)
   else return {descr, docs}
@@ -140,11 +158,20 @@ async function html2md(zfiles) {
       res.sort(function(a, b){
         return naturalCompare(a.name, b.name)
       })
+      let clean, cleans = []
+      res.forEach(result=> {
+        result.mds.forEach((row, idx)=> {
+          clean = row
+          if (idx) clean = row.replace(/#/g, '')
+          cleans.push(clean)
+        })
+      })
+
       let mds = _.flatten(res.map(md=> md.mds))
       // let md = _.flatten(mds)
       // let headers = md.filter(row=> /#/.test(row))
       // log('_MD-res:', md)
-      return mds
+      return cleans
     })
 }
 

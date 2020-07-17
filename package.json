@@ -20,7 +20,6 @@
     "jszip": "^3.5.0",
     "lodash": "^4.17.15",
     "natural-compare-lite": "^1.4.0",
-    "showdown": "^1.9.1",
     "turndown": "^6.0.0",
     "xml2js": "^0.4.23"
   }

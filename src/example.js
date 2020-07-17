@@ -20,12 +20,12 @@ log('RUN: BPATH', bpath)
 
 epub2json(bpath, export2dgl)
   .then(res=> {
-    if (!res) return
-    if (!res.docs) return
+    if (!res || !res.docs) return
     log('__RES', res.descr, res.docs.length)
-    log('__DOCS', res.docs.slice(100, 111))
+    // log('__DOCS', res.docs.slice(100, 111))
 
-    log(res.docs.slice(-10))
+    // log(res.docs.slice(-10))
+    // res.docs = res.docs.slice(-30)
     res.docs.forEach(doc=> {
       if (doc.level > -1) log('_title:', doc)
     })
