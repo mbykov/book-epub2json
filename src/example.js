@@ -23,6 +23,7 @@ epub2json(bpath, export2dgl)
     if (!res || !res.docs) return
     log('__RES', res.descr, res.docs.length)
     // log('__DOCS', res.docs.slice(100, 111))
+    log('__IMGS', res.imgs.length)
 
     // log(res.docs.slice(-10))
     res.docs = res.docs.slice(0,5)
