@@ -60,7 +60,7 @@ export async function epub2json(bpath, dgl)  {
   // log('_data', data.length)
   let {content, tocfile, imgfiles, zfiles} = await zip.loadAsync(data)
     .then(function (zip) {
-      log('_ZIP.FILES', zip.files.length);
+      // log('_ZIP.FILES', _.keys(zip.files).length);
 
       // let names = _.map(zip.files, file=> file.name)
       // names = names.filter(name=> !/image/.test(name))
