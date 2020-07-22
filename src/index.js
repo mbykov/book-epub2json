@@ -14,12 +14,18 @@ const iso6393 = require('iso-639-3')
 
 let insp = (o) => log(util.inspect(o, false, null))
 
+const tdnopts = {
+  linkStyle: 'inlined', // inlined or referenced
+  linkReferenceStyle: 'full' // full, collapsed, or shortcut
+}
+
 // const Turndown = require('turndown')
 import Turndown from 'turndown'
-const tdn = new Turndown()
-tdn.remove('head')
-tdn.remove('style')
-tdn.remove('title')
+const tdn = new Turndown(tdnopts)
+// tdn.remove('head')
+// tdn.remove('style')
+// tdn.remove('title')
+// calibre
 
 let rule1 = {
   filter: 'h1',
@@ -27,23 +33,15 @@ let rule1 = {
     return replaceHeader(1, content, node)
   }
 }
-tdn.addRule('h1', rule1)
+// tdn.addRule('h1', rule1)
 
-let rule2 = {
-  filter: 'h2',
+let rulesup = {
+  filter: 'sup',
   replacement: function (content, node) {
-    return replaceHeader(2, content, node)
+    return '[' + content + '](' + node.id + ')'
   }
 }
-tdn.addRule('h2', rule2)
-
-let rule3 = {
-  filter: 'h3',
-  replacement: function (content, node) {
-    return replaceHeader(3, content, node)
-  }
-}
-tdn.addRule('h3', rule3)
+tdn.addRule('sup', rulesup)
 
 function replaceHeader(level, content, node) {
   let nodeid = node.getAttribute('id')
@@ -142,14 +140,16 @@ export async function epub2json(bpath, dgl)  {
   // log('_ZFILES_:', zfiles.length)
   // log('_MDS_:', mds.length)
   log('_TOC_:', toc)
+  let znames = mds.map(md=> md.zname)
+  log('_ZNAMES_:', znames)
 
   let rename, ordered = []
   toc.forEach(row=> {
     // log('_RE_:', row.src)
     rename = new RegExp(row.src)
     // XXXX ========================= ?????? =========================
-    // let md = mds.find(file=> rename.test(file.zname))
-    let md  = mds.find(file=> row.src.split(file.zname).length > 1)
+    // let md = mds.find(file=> rename.test(file.zname)) // harry potter
+    let md  = mds.find(file=> row.src.split(file.zname).length > 1) // pg-alice
     if (md) ordered.push(md)
   })
   // log('_ORDERED_:', ordered.length)
@@ -203,7 +203,11 @@ function getMD(zfile) {
       html = html.split(/<body[^>]*>/)[1]
       if (!html) return
       html = html.split(/<\/body>/)[0]
-      let md = tdn.turndown(html)
+      log('_ZFILE-NAME_', zfile.name)
+      // log('_HTML_', html)
+      let md = tdn.turndown(html, tdnopts)
+      // [[XXX](fileposNNN)](dummy_split_NNN.html#fileposNNN)) =>  [XXX](fileposNNN) ; calibre stuff
+      md = md.replace(/\[\[/g, '[').replace(/\)\]\([^\)]*\)/g, '')
       let mds = md.split('\n')
       // mds.forEach(md=> md.trim())
       // mds = _.compact(mds)
@@ -211,7 +215,7 @@ function getMD(zfile) {
       mds = mds.filter(md => !/header:/.test(md))
       mds = mds.filter(md => md)
       // mds = mds.slice(0,9)
-      let zname = _.last(zfile.name.split('@'))
+      let zname = _.last(zfile.name.split(/[@\/]/))
       return {zname: zname, mds: mds}
     })
 }
@@ -232,10 +236,15 @@ function export2md(bpath, descr, mds) {
   mdpath = path.join(dirpath, mdpath)
   descr.text = ['file:://', mdpath].join('')
   fse.writeJson(dglpath, descr, {spaces: 2})
-  let file = fse.createWriteStream(mdpath)
-  file.on('error', function(err) { log('ERR:', err) })
-  mds.forEach(row => file.write(`${row}\r\n\r\n`))
-  file.end()
+
+  mdpath = [mdpath, '_'].join('')
+  log('___WRITING', dglpath)
+  // log('___MDS', mds.length)
+  fse.writeJson(mdpath, mds, {spaces: 2})
+  // let file = fse.createWriteStream(mdpath)
+  // file.on('error', function(err) { log('ERR:', err) })
+  // mds.forEach(row => file.write(`${row}\r\n\r\n`))
+  // file.end()
 }
 
 export function cleanDname(author = '', title = '') {

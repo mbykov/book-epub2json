@@ -11,11 +11,11 @@ let bpath
 bpath = '../test/Being_Different.epub'
 // bpath = '../test/minimal-v2.epub'
 // bpath = '../test/phoenix-ru.epub'
-bpath = '../test/phoenix-en.epub'
+// bpath = '../test/phoenix-en.epub'
 // bpath = '../test/Moby-Dick-backwards-nav.epub'
 // bpath = '../test/pg2701.epub'
-bpath = '../test/alice.epub'
-bpath = '../test/pg928.epub'
+// bpath = '../test/alice.epub'
+// bpath = '../test/pg928.epub'
 
 bpath = path.resolve(__dirname, bpath)
 log('RUN: BPATH', bpath)
