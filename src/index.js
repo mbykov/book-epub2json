@@ -66,6 +66,9 @@ export async function epub2json(bpath, dgl)  {
       // names = names.filter(name=> !/image/.test(name))
       // log('_NAMES', names);
       let tocfile = _.find(zip.files, file=> { return /toc.ncx/.test(file.name) })
+      let imgfiles = _.filter(zip.files, zfile=> /image/.test(zfile.name))
+      let imgnames = imgfiles.map(imgfile=> imgfile.name)
+      log('__IMG', imgnames.length)
 
       let content = _.find(zip.files, file=> { return /\.opf/.test(file.name) })
       let zfiles = _.filter(zip.files, file=> { return /\.x?html/.test(file.name) }) // \.html, .xhtml
@@ -132,6 +135,7 @@ export async function epub2json(bpath, dgl)  {
   // zfiles = zfiles.slice(21, 22)
 
   const mds = await html2md(zfiles)
+  const imgs = await img2files(zfiles)
 
   let rename, ordered = []
   toc.forEach(row=> {
@@ -221,4 +225,50 @@ function export2md(bpath, descr, mds) {
 export function cleanDname(author = '', title = '') {
   let str = [author.slice(0,25), title.slice(0,25)].join('-')
   return str.replace(/[)(,\.]/g,'').replace(/\s+/g, '-').replace(/\//g, '_').replace(/^-/, '')
+}
+
+async function img2files(imgfiles) {
+  return await Promise.all(imgfiles.map(zfile=> {
+    return getImage(zfile)
+  }))
+    .then(imgs=> {
+      imgs = _.compact(imgs)
+      return imgs
+    })
+}
+
+function getImage(imgfile) {
+  return imgfile
+    .async('arraybuffer')
+    .then(imgcontent=> {
+      // log('_imgc:', imgcontent)
+      let buffer = new Uint8Array(imgcontent)
+      let blob = new Blob([buffer.buffer])
+      // console.log(blob);
+      let img = new Image
+      let imgpath = path.resolve(__dirname, 'images')
+      log('_imgpath:', imgpath)
+      // fse.writeFileSync(imgpath, img)
+      img.src = URL.createObjectURL(blob)
+      return img
+    })
+}
+
+export function epubImage(fn) {
+  return checkEpub()
+    .then(res=> {
+      // log('_________________ GET EPUB IMG:', res, epubzip, fn)
+      let imgzip = _.find(epubzip.files, file=> { return file.name == fn })
+      return imgzip
+        .async('arraybuffer')
+        .then(content=> {
+          console.log(content);
+          let buffer = new Uint8Array(content)
+          let blob = new Blob([buffer.buffer])
+          // console.log(blob);
+          let img = new Image
+          img.src = URL.createObjectURL(blob)
+          return img
+        })
+    })
 }
