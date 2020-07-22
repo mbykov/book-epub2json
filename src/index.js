@@ -14,12 +14,18 @@ const iso6393 = require('iso-639-3')
 
 let insp = (o) => log(util.inspect(o, false, null))
 
+const tdnopts = {
+  linkStyle: 'inlined', // inlined or referenced
+  linkReferenceStyle: 'full' // full, collapsed, or shortcut
+}
+
 // const Turndown = require('turndown')
 import Turndown from 'turndown'
-const tdn = new Turndown()
-tdn.remove('head')
-tdn.remove('style')
-tdn.remove('title')
+const tdn = new Turndown(tdnopts)
+// tdn.remove('head')
+// tdn.remove('style')
+// tdn.remove('title')
+// calibre
 
 let rule1 = {
   filter: 'h1',
@@ -27,23 +33,15 @@ let rule1 = {
     return replaceHeader(1, content, node)
   }
 }
-tdn.addRule('h1', rule1)
+// tdn.addRule('h1', rule1)
 
-let rule2 = {
-  filter: 'h2',
+let rulesup = {
+  filter: 'sup',
   replacement: function (content, node) {
-    return replaceHeader(2, content, node)
+    return '[' + content + '](' + node.id + ')'
   }
 }
-tdn.addRule('h2', rule2)
-
-let rule3 = {
-  filter: 'h3',
-  replacement: function (content, node) {
-    return replaceHeader(3, content, node)
-  }
-}
-tdn.addRule('h3', rule3)
+tdn.addRule('sup', rulesup)
 
 function replaceHeader(level, content, node) {
   let nodeid = node.getAttribute('id')
@@ -58,27 +56,33 @@ function replaceHeader(level, content, node) {
 export async function epub2json(bpath, dgl)  {
   const data = await fse.readFile(bpath)
   // log('_data', data.length)
-  let {content, tocfile, zfiles} = await zip.loadAsync(data)
+  let {content, tocfile, imgfiles, zfiles} = await zip.loadAsync(data)
     .then(function (zip) {
-      log('_ZIP.FILES', zip.files.length);
+      // log('_ZIP.FILES', zip.files)
 
       // let names = _.map(zip.files, file=> file.name)
       // names = names.filter(name=> !/image/.test(name))
       // log('_NAMES', names);
       let tocfile = _.find(zip.files, file=> { return /toc.ncx/.test(file.name) })
       let imgfiles = _.filter(zip.files, zfile=> /image/.test(zfile.name))
+<<<<<<< HEAD
       let imgnames = imgfiles.map(imgfile=> imgfile.name)
       log('__IMG', imgnames.length)
+=======
+      // let imgnames = imgfiles.map(imgfile=> imgfile.name)
+      // log('__IMG', imgnames.slice(-3))
+>>>>>>> 76867debb101c9d532f7b345efce97105af9f803
 
       let content = _.find(zip.files, file=> { return /\.opf/.test(file.name) })
-      let zfiles = _.filter(zip.files, file=> { return /\.x?html/.test(file.name) }) // \.html, .xhtml
+      let zfiles = _.filter(zip.files, file=> { return /\.x?html?/.test(file.name) }) // \.html, .xhtml
       // zfiles.sort(function(a, b){
         // return naturalCompare(a.name, b.name)
       // })
-      return {content, tocfile, zfiles}
+      return {content, tocfile, imgfiles, zfiles}
     })
   // log('_after-cont:', content)
   // log('_after-zfiles_:', zfiles.length)
+  // return {descr, docs, imgs}
 
   let toc = await tocfile
       .async('text')
@@ -90,7 +94,8 @@ export async function epub2json(bpath, dgl)  {
           let navPoint = navMap[0].navPoint
           // log('_navMap', navPoint)
           let toc = navPoint.map(row=> {
-            return {playOrder: row.$.playOrder, src: row.content[0].$.src}
+            // YYY
+            return {playOrder: row.$.playOrder, src: row.content[0].$.src, navlabel: row.navLabel[0].text.toString(), cnt: row.content[0].$}
           })
           return toc
         })
@@ -135,15 +140,30 @@ export async function epub2json(bpath, dgl)  {
   // zfiles = zfiles.slice(21, 22)
 
   const mds = await html2md(zfiles)
+<<<<<<< HEAD
   const imgs = await img2files(zfiles)
+=======
+  const imgs = await img2files(imgfiles)
+
+  // log('_ZFILES_:', zfiles.length)
+  // log('_MDS_:', mds.length)
+  log('_TOC_:', toc)
+  let znames = mds.map(md=> md.zname)
+  log('_ZNAMES_:', znames)
+>>>>>>> 76867debb101c9d532f7b345efce97105af9f803
 
   let rename, ordered = []
   toc.forEach(row=> {
+    // log('_RE_:', row.src)
     rename = new RegExp(row.src)
-    let md = mds.find(file=> rename.test(file.name))
-    ordered.push(md)
+    // XXXX ========================= ?????? =========================
+    // let md = mds.find(file=> rename.test(file.zname)) // harry potter
+    let md  = mds.find(file=> row.src.split(file.zname).length > 1) // pg-alice
+    if (md) ordered.push(md)
   })
   // log('_ORDERED_:', ordered.length)
+  // zname: 'OEBPS/hp05_ch026_en-us.html'
+  //   { playOrder: '13', src: 'hp05_ch007_en-us.html' },
 
   // todo: already - оставить только первый header в разделе, остальные заменить на bold
   // todo: объеденить с созданием docs
@@ -153,20 +173,24 @@ export async function epub2json(bpath, dgl)  {
     header = false
     section.mds.forEach((row, idx)=> {
       doc = {}
-      if (/#/.test(row)) {
+      if (/^#/.test(row)) {
         level = row.match(/#/g).length
         row = row.replace(/#/g, '').trim()
-        if (header) row = ['**', row, '**'].join('')
-        else header = true, doc.level = level
+        // if (header) row = ['**', row, '**'].join('')
+        // else header = true, doc.level = level
+        doc.level = level
       }
       doc.md = row.trim()
       docs.push(doc)
     })
   })
 
+  // let imgfile = imgfiles[10]
+
   // log('____DOCS', docs.length)
+  descr.type = 'epub'
   if (dgl) export2md(bpath, descr, mds)
-  else return {descr, docs}
+  else return {descr, docs, imgs}
 }
 
 async function html2md(zfiles) {
@@ -188,15 +212,20 @@ function getMD(zfile) {
       html = html.split(/<body[^>]*>/)[1]
       if (!html) return
       html = html.split(/<\/body>/)[0]
-      let md = tdn.turndown(html)
-      // let mds = md.split('\n').map(md=> cleanText(md.trim()))
+      log('_ZFILE-NAME_', zfile.name)
+      // log('_HTML_', html)
+      let md = tdn.turndown(html, tdnopts)
+      // [[XXX](fileposNNN)](dummy_split_NNN.html#fileposNNN)) =>  [XXX](fileposNNN) ; calibre stuff
+      md = md.replace(/\[\[/g, '[').replace(/\)\]\([^\)]*\)/g, '')
       let mds = md.split('\n')
-      mds = _.compact(mds)
       // mds.forEach(md=> md.trim())
+      // mds = _.compact(mds)
       mds = mds.map(md=> cleanText(md.trim()))
       mds = mds.filter(md => !/header:/.test(md))
+      mds = mds.filter(md => md)
       // mds = mds.slice(0,9)
-      return {name: zfile.name, mds: mds}
+      let zname = _.last(zfile.name.split(/[@\/]/))
+      return {zname: zname, mds: mds}
     })
 }
 
@@ -216,10 +245,15 @@ function export2md(bpath, descr, mds) {
   mdpath = path.join(dirpath, mdpath)
   descr.text = ['file:://', mdpath].join('')
   fse.writeJson(dglpath, descr, {spaces: 2})
-  let file = fse.createWriteStream(mdpath)
-  file.on('error', function(err) { log('ERR:', err) })
-  mds.forEach(row => file.write(`${row}\r\n\r\n`))
-  file.end()
+
+  mdpath = [mdpath, '_'].join('')
+  log('___WRITING', dglpath)
+  // log('___MDS', mds.length)
+  fse.writeJson(mdpath, mds, {spaces: 2})
+  // let file = fse.createWriteStream(mdpath)
+  // file.on('error', function(err) { log('ERR:', err) })
+  // mds.forEach(row => file.write(`${row}\r\n\r\n`))
+  // file.end()
 }
 
 export function cleanDname(author = '', title = '') {
@@ -228,6 +262,12 @@ export function cleanDname(author = '', title = '') {
 }
 
 async function img2files(imgfiles) {
+<<<<<<< HEAD
+=======
+  let dirpath = path.resolve(__dirname, '../images')
+  fse.ensureDir(dirpath)
+  // log('___imgpath:', dirpath)
+>>>>>>> 76867debb101c9d532f7b345efce97105af9f803
   return await Promise.all(imgfiles.map(zfile=> {
     return getImage(zfile)
   }))
@@ -242,6 +282,7 @@ function getImage(imgfile) {
     .async('arraybuffer')
     .then(imgcontent=> {
       // log('_imgc:', imgcontent)
+<<<<<<< HEAD
       let buffer = new Uint8Array(imgcontent)
       let blob = new Blob([buffer.buffer])
       // console.log(blob);
@@ -270,5 +311,12 @@ export function epubImage(fn) {
           img.src = URL.createObjectURL(blob)
           return img
         })
+=======
+      // let imgpath = path.resolve(__dirname, '../images', _.last(imgfile.name.split('/')))
+      let buffer = new Uint8Array(imgcontent)
+      // fse.writeFileSync(imgpath, buffer)
+      let imgname = _.last(imgfile.name.split(/[\/@]/) )
+      return {name: imgname, data: buffer}
+>>>>>>> 76867debb101c9d532f7b345efce97105af9f803
     })
 }
