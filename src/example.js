@@ -31,6 +31,8 @@ epub2json(bpath, export2dgl)
     // log(res.docs.slice(-10))
 
     res.docs = res.docs.slice(0,15)
+    res.docs = res.docs.slice(0,5)
+    // res.docs = res.docs.slice(0,5)
     res.docs.forEach(doc=> {
       if (doc.level > -1) log('_title:', doc)
     })

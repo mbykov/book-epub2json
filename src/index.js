@@ -65,6 +65,8 @@ export async function epub2json(bpath, dgl)  {
       // log('_NAMES', names);
       let tocfile = _.find(zip.files, file=> { return /toc.ncx/.test(file.name) })
       let imgfiles = _.filter(zip.files, zfile=> /image/.test(zfile.name))
+      let imgnames = imgfiles.map(imgfile=> imgfile.name)
+      log('__IMG', imgnames.length)
       // let imgnames = imgfiles.map(imgfile=> imgfile.name)
       // log('__IMG', imgnames.slice(-3))
 
@@ -135,7 +137,7 @@ export async function epub2json(bpath, dgl)  {
   // zfiles = zfiles.slice(21, 22)
 
   let mds = await html2md(zfiles)
-  const imgs = await img2files(imgfiles)
+  const imgs = await img2files(zfiles)
 
   // log('_ZFILES_:', zfiles.length)
   // log('_MDS_:', mds.length)
@@ -283,7 +285,8 @@ async function img2files(imgfiles) {
   fse.ensureDir(dirpath)
   // log('___imgpath:', dirpath)
   return await Promise.all(imgfiles.map(zfile=> {
-    return getImage(zfile)
+    // return getImage(zfile)
+    return null
   }))
     .then(imgs=> {
       imgs = _.compact(imgs)
@@ -291,15 +294,44 @@ async function img2files(imgfiles) {
     })
 }
 
-function getImage(imgfile) {
-  return imgfile
-    .async('arraybuffer')
-    .then(imgcontent=> {
-      // log('_imgc:', imgcontent)
-      // let imgpath = path.resolve(__dirname, '../images', _.last(imgfile.name.split('/')))
-      let buffer = new Uint8Array(imgcontent)
-      // fse.writeFileSync(imgpath, buffer)
-      let imgname = _.last(imgfile.name.split(/[\/@]/) )
-      return {name: imgname, data: buffer}
-    })
-}
+// function getImage(imgfile) {
+//   return imgfile
+//     .async('arraybuffer')
+//     .then(imgcontent=> {
+//       // log('_imgc:', imgcontent)
+//       let buffer = new Uint8Array(imgcontent)
+//       let blob = new Blob([buffer.buffer])
+//       // console.log(blob);
+//       let img = new Image
+//       let imgpath = path.resolve(__dirname, 'images')
+//       log('_imgpath:', imgpath)
+//       // fse.writeFileSync(imgpath, img)
+//       img.src = URL.createObjectURL(blob)
+//       return img
+//     })
+// }
+
+// export function epubImage(fn) {
+//   return checkEpub()
+//     .then(res=> {
+//       // log('_________________ GET EPUB IMG:', res, epubzip, fn)
+//       let imgzip = _.find(epubzip.files, file=> { return file.name == fn })
+//       return imgzip
+//         .async('arraybuffer')
+//         .then(content=> {
+//           console.log(content);
+//           let buffer = new Uint8Array(content)
+//           let blob = new Blob([buffer.buffer])
+//           // console.log(blob);
+//           let img = new Image
+//           img.src = URL.createObjectURL(blob)
+//           return img
+//         })
+//       // let imgpath = path.resolve(__dirname, '../images', _.last(imgfile.name.split('/')))
+//       let buffer = new Uint8Array(imgcontent)
+//       // fse.writeFileSync(imgpath, buffer)
+//       let imgname = _.last(imgfile.name.split(/[\/@]/) )
+//       return {name: imgname, data: buffer}
+//     })
+// }
+//
