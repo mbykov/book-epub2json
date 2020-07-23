@@ -148,8 +148,10 @@ export async function epub2json(bpath, dgl)  {
   let znames = mds.map(md=> md.zname)
   log('_ZNAMES_:', znames.length)
 
-  let headers = [] // убрать
+  // let headers = [] // убрать
   let ordered = []
+  let title = {level: 1, md: 'TITLE'}
+  ordered.push(title)
   tocs.forEach(toc=> {
     // log('_RE_:', row.src)
     // rename = new RegExp(toc.src)
@@ -161,7 +163,7 @@ export async function epub2json(bpath, dgl)  {
       throw new Error()
     }
     let head = {level: 2, md: toc.navlabel}
-    headers.push(head)
+    // headers.push(head)
     ordered.push(head)
     let level, doc = {}
     file.mds.forEach(md=> {
@@ -178,7 +180,7 @@ export async function epub2json(bpath, dgl)  {
     })
   })
   log('_ORDERED_:', ordered.length)
-  log('_HEADERS_:', headers.length)
+  // log('_HEADERS_:', headers.length)
   let zeros = ordered.filter(doc=> !doc.md)
   log('_ZEROS', zeros.length)
   // zname: 'OEBPS/hp05_ch026_en-us.html'
@@ -311,7 +313,7 @@ async function img2files(imgfiles) {
 //     })
 // }
 
-// export function epubImage(fn) {
+// export function epubImage(fn) { d
 //   return checkEpub()
 //     .then(res=> {
 //       // log('_________________ GET EPUB IMG:', res, epubzip, fn)
