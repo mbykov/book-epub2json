@@ -79,7 +79,7 @@ export async function epub2json(bpath, dgl)  {
   // log('_after-zfiles_:', zfiles.length)
   // return {descr, docs, imgs}
 
-  let toc = await tocfile
+  let tocs = await tocfile
       .async('text')
       .then(data=> {
         return xml2js.parseStringPromise(data).then(function (tocdata) {
@@ -88,15 +88,15 @@ export async function epub2json(bpath, dgl)  {
           let navMap = tocdata.ncx.navMap
           let navPoint = navMap[0].navPoint
           // log('_navMap', navPoint)
-          let toc = navPoint.map(row=> {
+          let tocs = navPoint.map(row=> {
             // YYY
             return {playOrder: row.$.playOrder, src: row.content[0].$.src, navlabel: row.navLabel[0].text.toString(), cnt: row.content[0].$}
           })
-          return toc
+          return tocs
         })
       })
 
-  // log('_TOC_:', toc)
+  // log('_TOCS_:', tocs.slice(0, 10))
   // log('_ZFILES_:', zfiles.length)
 
   let descr = await content
@@ -134,54 +134,80 @@ export async function epub2json(bpath, dgl)  {
   // log('_DESCR', descr)
   // zfiles = zfiles.slice(21, 22)
 
-  const mds = await html2md(zfiles)
+  let mds = await html2md(zfiles)
   const imgs = await img2files(imgfiles)
 
   // log('_ZFILES_:', zfiles.length)
   // log('_MDS_:', mds.length)
-  log('_TOC_:', toc)
+  // tocs = tocs.slice(0,2)
+  // mds = mds.slice(0,2)
+  // log('_TOCS_:', tocs)
+  // log('_MDS_KEYS:', _.keys(mds[0]))
   let znames = mds.map(md=> md.zname)
-  log('_ZNAMES_:', znames)
+  log('_ZNAMES_:', znames.length)
 
-  let rename, ordered = []
-  toc.forEach(row=> {
+  let headers = [] // убрать
+  let ordered = []
+  tocs.forEach(toc=> {
     // log('_RE_:', row.src)
-    rename = new RegExp(row.src)
+    // rename = new RegExp(toc.src)
     // XXXX ========================= ?????? =========================
     // let md = mds.find(file=> rename.test(file.zname)) // harry potter
-    let md  = mds.find(file=> row.src.split(file.zname).length > 1) // pg-alice
-    if (md) ordered.push(md)
+    let file  = mds.find(file=> toc.src.split(file.zname).length > 1) // pg-alice
+    if (!file) {
+      log('_no file:_', toc)
+      throw new Error()
+    }
+    let head = {level: 2, md: toc.navlabel}
+    headers.push(head)
+    ordered.push(head)
+    let level, doc = {}
+    file.mds.forEach(md=> {
+      md = md.trim()
+      if (!md) return
+      doc.md = md
+      if (/^#/.test(md)) {
+        level = md.match(/#/g).length
+        md = md.replace(/#/g, '').trim()
+        md = ['**', md, '**'].join('')
+        doc.mdlevel = level
+      }
+      ordered.push(doc)
+    })
   })
-  // log('_ORDERED_:', ordered.length)
+  log('_ORDERED_:', ordered.length)
+  log('_HEADERS_:', headers.length)
+  let zeros = ordered.filter(doc=> !doc.md)
+  log('_ZEROS', zeros.length)
   // zname: 'OEBPS/hp05_ch026_en-us.html'
   //   { playOrder: '13', src: 'hp05_ch007_en-us.html' },
 
   // todo: already - оставить только первый header в разделе, остальные заменить на bold
   // todo: объеденить с созданием docs
-  let doc, level, docs = []
-  let header = false
-  ordered.forEach(section=> {
-    header = false
-    section.mds.forEach((row, idx)=> {
-      doc = {}
-      if (/^#/.test(row)) {
-        level = row.match(/#/g).length
-        row = row.replace(/#/g, '').trim()
-        // if (header) row = ['**', row, '**'].join('')
-        // else header = true, doc.level = level
-        doc.level = level
-      }
-      doc.md = row.trim()
-      docs.push(doc)
-    })
-  })
+  // let doc, level, docs = []
+  // // let header = false
+  // ordered.forEach(section=> {
+  //   // header = false
+  //   section.mds.forEach((row, idx)=> {
+  //     doc = {}
+  //     if (/^#/.test(row)) {
+  //       level = row.match(/#/g).length
+  //       row = row.replace(/#/g, '').trim()
+  //       // if (header) row = ['**', row, '**'].join('')
+  //       // else header = true, doc.level = level
+  //       doc.level = level
+  //     }
+  //     doc.md = row.trim()
+  //     docs.push(doc)
+  //   })
+  // })
 
   // let imgfile = imgfiles[10]
 
-  // log('____DOCS', docs.length)
   descr.type = 'epub'
+  // log('____IND DESCR', descr)
   if (dgl) export2md(bpath, descr, mds)
-  else return {descr, docs, imgs}
+  else return {descr, docs: ordered, imgs}
 }
 
 async function html2md(zfiles) {
@@ -203,7 +229,7 @@ function getMD(zfile) {
       html = html.split(/<body[^>]*>/)[1]
       if (!html) return
       html = html.split(/<\/body>/)[0]
-      log('_ZFILE-NAME_', zfile.name)
+      // log('_ZFILE-NAME_', zfile.name)
       // log('_HTML_', html)
       let md = tdn.turndown(html, tdnopts)
       // [[XXX](fileposNNN)](dummy_split_NNN.html#fileposNNN)) =>  [XXX](fileposNNN) ; calibre stuff

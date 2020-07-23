@@ -11,7 +11,7 @@ let bpath
 bpath = '../test/Being_Different.epub'
 // bpath = '../test/minimal-v2.epub'
 // bpath = '../test/phoenix-ru.epub'
-// bpath = '../test/phoenix-en.epub'
+bpath = '../test/phoenix-en.epub'
 // bpath = '../test/Moby-Dick-backwards-nav.epub'
 // bpath = '../test/pg2701.epub'
 // bpath = '../test/alice.epub'
@@ -27,9 +27,10 @@ epub2json(bpath, export2dgl)
     log('__RES_docs:', res.docs.length)
     log('__RES_imgs', res.imgs.length)
 
-    log('__RES_docs-sc:', res.docs.slice(50, 51))
+    log('__RES_docs-sclice:', res.docs.slice(50, 55))
     // log(res.docs.slice(-10))
-    // res.docs = res.docs.slice(0,5)
+
+    res.docs = res.docs.slice(0,15)
     res.docs.forEach(doc=> {
       if (doc.level > -1) log('_title:', doc)
     })
