@@ -158,6 +158,8 @@ export async function epub2json(bpath, dgl)  {
     // XXXX ========================= ?????? =========================
     // let md = mds.find(file=> rename.test(file.zname)) // harry potter
     let file  = mds.find(file=> toc.src.split(file.zname).length > 1) // pg-alice
+    log('_TOC SRC', toc.src)
+    log('_zname', file.zname)
     if (!file) {
       log('_no file:_', toc)
       throw new Error()
@@ -165,8 +167,8 @@ export async function epub2json(bpath, dgl)  {
     let head = {level: 2, md: toc.navlabel}
     // headers.push(head)
     ordered.push(head)
-    let level, doc = {}
     file.mds.forEach(md=> {
+      let level, doc = {}
       md = md.trim()
       if (!md) return
       doc.md = md
@@ -210,7 +212,7 @@ export async function epub2json(bpath, dgl)  {
 
   descr.type = 'epub'
   // log('____IND DESCR', descr)
-  if (dgl) export2md(bpath, descr, mds)
+  if (dgl) export2md(bpath, descr, ordered)
   else return {descr, docs: ordered, imgs}
 }
 
@@ -257,7 +259,7 @@ function cleanText(str) {
   return clean
 }
 
-function export2md(bpath, descr, mds) {
+function export2md(bpath, descr, docs) {
   const dirpath = path.dirname(bpath)
   let mdpath = cleanDname(descr.author, descr.title)
   let dglpath = [mdpath, 'dgl'].join('.')
@@ -267,10 +269,10 @@ function export2md(bpath, descr, mds) {
   descr.text = ['file:://', mdpath].join('')
   fse.writeJson(dglpath, descr, {spaces: 2})
 
-  mdpath = [mdpath, '_'].join('')
+  // mdpath = [mdpath, '_'].join('')
   log('___WRITING', dglpath)
   // log('___MDS', mds.length)
-  fse.writeJson(mdpath, mds, {spaces: 2})
+  fse.writeJson(mdpath, docs, {spaces: 2})
   // let file = fse.createWriteStream(mdpath)
   // file.on('error', function(err) { log('ERR:', err) })
   // mds.forEach(row => file.write(`${row}\r\n\r\n`))
