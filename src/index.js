@@ -128,11 +128,12 @@ export async function epub2json(bpath, dgl)  {
             let iso = _.find(iso6393, iso=> iso.iso6391 == lang)
             if (iso) lang = iso.iso6393
           }
-          let descr = {version, author, title, lang}
+          let descr = {type: 'epub', version, author, title, lang}
           // log('_descr_', descr)
           return descr
         })
       })
+
   // log('_DESCR', descr)
   // zfiles = zfiles.slice(21, 22)
 
@@ -149,71 +150,88 @@ export async function epub2json(bpath, dgl)  {
   log('_ZNAMES_:', znames.length)
 
   // let headers = [] // убрать
+  let ordered = md2toc(tocs, mds)
+  if (dgl) export2md(bpath, descr, ordered)
+  else return {descr, mds: ordered, imgs}
+
+
+  // let ordered_ = []
+  // let title = {level: 1, md: 'TITLE'}
+  // ordered.push(title)
+  // tocs.forEach(toc=> {
+  //   // log('_RE_:', row.src)
+  //   // rename = new RegExp(toc.src)
+  //   // XXXX ========================= ?????? =========================
+  //   // let md = mds.find(file=> rename.test(file.zname)) // harry potter
+  //   let file  = mds.find(file=> toc.src.split(file.zname).length > 1) // pg-alice
+  //   log('_TOC SRC', toc.src)
+  //   log('_zname', file.zname)
+  //   if (!file) {
+  //     log('_no file:_', toc)
+  //     throw new Error()
+  //   }
+  //   let head = {level: 2, md: toc.navlabel}
+  //   // headers.push(head)
+  //   ordered.push(head)
+  //   file.mds.forEach(md=> {
+  //     let level, doc = {}
+  //     md = md.trim()
+  //     if (!md) return
+  //     doc.md = md
+  //     if (/^#/.test(md)) {
+  //       level = md.match(/#/g).length
+  //       md = md.replace(/#/g, '').trim()
+  //       md = ['**', md, '**'].join('')
+  //       doc.mdlevel = level
+  //     }
+  //     ordered.push(doc)
+  //   })
+  // })
+  // log('_ORDERED_:', ordered.length)
+  // // log('_HEADERS_:', headers.length)
+  // let zeros = ordered.filter(doc=> !doc.md)
+  // log('_ZEROS', zeros.length)
+  // // zname: 'OEBPS/hp05_ch026_en-us.html'
+  // //   { playOrder: '13', src: 'hp05_ch007_en-us.html' },
+
+  // descr.type = 'epub'
+  // // log('____IND DESCR', descr)
+  // if (dgl) export2md(bpath, descr, ordered)
+  // else return {descr, docs: ordered, imgs}
+}
+
+function md2toc(tocs, mds) {
   let ordered = []
-  let title = {level: 1, md: 'TITLE'}
+  let title = ['#', 'title'].join(' ')
   ordered.push(title)
   tocs.forEach(toc=> {
-    // log('_RE_:', row.src)
-    // rename = new RegExp(toc.src)
-    // XXXX ========================= ?????? =========================
-    // let md = mds.find(file=> rename.test(file.zname)) // harry potter
     let file  = mds.find(file=> toc.src.split(file.zname).length > 1) // pg-alice
-    log('_TOC SRC', toc.src)
-    log('_zname', file.zname)
+    // log('_TOC SRC', toc.src)
+    // log('_zname', file.zname)
     if (!file) {
-      log('_no file:_', toc)
+      log('_no file toc.src:_', toc)
       throw new Error()
     }
-    let head = {level: 2, md: toc.navlabel}
-    // headers.push(head)
+    let head = ['##', toc.navlabel].join(' ')
     ordered.push(head)
     file.mds.forEach(md=> {
-      let level, doc = {}
+      let level
       md = md.trim()
       if (!md) return
-      doc.md = md
       if (/^#/.test(md)) {
         level = md.match(/#/g).length
         md = md.replace(/#/g, '').trim()
         md = ['**', md, '**'].join('')
-        doc.mdlevel = level
       }
-      ordered.push(doc)
+      ordered.push(md)
     })
   })
   log('_ORDERED_:', ordered.length)
-  // log('_HEADERS_:', headers.length)
-  let zeros = ordered.filter(doc=> !doc.md)
-  log('_ZEROS', zeros.length)
+  // let zeros = ordered.filter(doc=> !doc.md)
+  // log('_ZEROS', zeros.length)
   // zname: 'OEBPS/hp05_ch026_en-us.html'
   //   { playOrder: '13', src: 'hp05_ch007_en-us.html' },
-
-  // todo: already - оставить только первый header в разделе, остальные заменить на bold
-  // todo: объеденить с созданием docs
-  // let doc, level, docs = []
-  // // let header = false
-  // ordered.forEach(section=> {
-  //   // header = false
-  //   section.mds.forEach((row, idx)=> {
-  //     doc = {}
-  //     if (/^#/.test(row)) {
-  //       level = row.match(/#/g).length
-  //       row = row.replace(/#/g, '').trim()
-  //       // if (header) row = ['**', row, '**'].join('')
-  //       // else header = true, doc.level = level
-  //       doc.level = level
-  //     }
-  //     doc.md = row.trim()
-  //     docs.push(doc)
-  //   })
-  // })
-
-  // let imgfile = imgfiles[10]
-
-  descr.type = 'epub'
-  // log('____IND DESCR', descr)
-  if (dgl) export2md(bpath, descr, ordered)
-  else return {descr, docs: ordered, imgs}
+  return ordered
 }
 
 async function html2md(zfiles) {
