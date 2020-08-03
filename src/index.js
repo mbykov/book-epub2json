@@ -53,9 +53,16 @@ function replaceHeader(level, content, node) {
   return header
 }
 
-export async function epub2json(bpath, dgl)  {
-  const data = await fse.readFile(bpath)
-  // log('_data', data.length)
+export async function epub2md(bpath)  {
+  log('_fs_path', bpath)
+  let data
+  try {
+    data = await fse.readFile(bpath)
+  } catch(err) {
+    let mess = 'wrong epub file' + bpath
+    return {descr: mess}
+  }
+  log('_fs_data', data.length)
   let {content, tocfile, imgfiles, zfiles} = await zip.loadAsync(data)
     .then(function (zip) {
       // log('_ZIP.FILES', zip.files)
@@ -91,7 +98,6 @@ export async function epub2json(bpath, dgl)  {
           let navPoint = navMap[0].navPoint
           // log('_navMap', navPoint)
           let tocs = navPoint.map(row=> {
-            // YYY
             return {playOrder: row.$.playOrder, src: row.content[0].$.src, navlabel: row.navLabel[0].text.toString(), cnt: row.content[0].$}
           })
           return tocs
@@ -107,7 +113,6 @@ export async function epub2json(bpath, dgl)  {
         return xml2js.parseStringPromise(data).then(function (content) {
           let version = content.package.$.version
           let metadata = content.package.metadata[0]
-          // let author = (metadata['dc:creator']) ? metadata['dc:creator'][0]._ : ''
           let author = '', title = '', lang = ''
           // log('_M', version, metadata)
           if (metadata['dc:creator']) {
@@ -129,7 +134,6 @@ export async function epub2json(bpath, dgl)  {
             if (iso) lang = iso.iso6393
           }
           let descr = {type: 'epub', version, author, title, lang}
-          // log('_descr_', descr)
           return descr
         })
       })
@@ -140,64 +144,11 @@ export async function epub2json(bpath, dgl)  {
   let mds = await html2md(zfiles)
   const imgs = await img2files(zfiles)
 
-  // log('_ZFILES_:', zfiles.length)
-  // log('_MDS_:', mds.length)
-  // tocs = tocs.slice(0,2)
-  // mds = mds.slice(0,2)
-  // log('_TOCS_:', tocs)
-  // log('_MDS_KEYS:', _.keys(mds[0]))
   let znames = mds.map(md=> md.zname)
   log('_ZNAMES_:', znames.length)
 
-  // let headers = [] // убрать
   let ordered = md2toc(tocs, mds)
-  if (dgl) export2md(bpath, descr, ordered)
-  else return {descr, mds: ordered, imgs}
-
-
-  // let ordered_ = []
-  // let title = {level: 1, md: 'TITLE'}
-  // ordered.push(title)
-  // tocs.forEach(toc=> {
-  //   // log('_RE_:', row.src)
-  //   // rename = new RegExp(toc.src)
-  //   // XXXX ========================= ?????? =========================
-  //   // let md = mds.find(file=> rename.test(file.zname)) // harry potter
-  //   let file  = mds.find(file=> toc.src.split(file.zname).length > 1) // pg-alice
-  //   log('_TOC SRC', toc.src)
-  //   log('_zname', file.zname)
-  //   if (!file) {
-  //     log('_no file:_', toc)
-  //     throw new Error()
-  //   }
-  //   let head = {level: 2, md: toc.navlabel}
-  //   // headers.push(head)
-  //   ordered.push(head)
-  //   file.mds.forEach(md=> {
-  //     let level, doc = {}
-  //     md = md.trim()
-  //     if (!md) return
-  //     doc.md = md
-  //     if (/^#/.test(md)) {
-  //       level = md.match(/#/g).length
-  //       md = md.replace(/#/g, '').trim()
-  //       md = ['**', md, '**'].join('')
-  //       doc.mdlevel = level
-  //     }
-  //     ordered.push(doc)
-  //   })
-  // })
-  // log('_ORDERED_:', ordered.length)
-  // // log('_HEADERS_:', headers.length)
-  // let zeros = ordered.filter(doc=> !doc.md)
-  // log('_ZEROS', zeros.length)
-  // // zname: 'OEBPS/hp05_ch026_en-us.html'
-  // //   { playOrder: '13', src: 'hp05_ch007_en-us.html' },
-
-  // descr.type = 'epub'
-  // // log('____IND DESCR', descr)
-  // if (dgl) export2md(bpath, descr, ordered)
-  // else return {descr, docs: ordered, imgs}
+  return {descr, mds: ordered, imgs}
 }
 
 function md2toc(tocs, mds) {
