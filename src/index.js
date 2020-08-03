@@ -8,9 +8,7 @@ const util = require("util")
 // new:
 const zip = require("jszip")
 const xml2js = require('xml2js')
-// const naturalCompare = require("natural-compare-lite")
 const iso6393 = require('iso-639-3')
-// const iconv = require('iconv-lite');
 
 let insp = (o) => log(util.inspect(o, false, null))
 
@@ -22,18 +20,6 @@ const tdnopts = {
 // const Turndown = require('turndown')
 import Turndown from 'turndown'
 const tdn = new Turndown(tdnopts)
-// tdn.remove('head')
-// tdn.remove('style')
-// tdn.remove('title')
-// calibre
-
-let rule1 = {
-  filter: 'h1',
-  replacement: function (content, node) {
-    return replaceHeader(1, content, node)
-  }
-}
-// tdn.addRule('h1', rule1)
 
 let rulesup = {
   filter: 'sup',
@@ -43,18 +29,7 @@ let rulesup = {
 }
 tdn.addRule('sup', rulesup)
 
-function replaceHeader(level, content, node) {
-  let nodeid = node.getAttribute('id')
-  let hashes = '#'.repeat(level) + ' '
-  let header = ''
-  if (nodeid) header = 'header: ' + level + ' ' + nodeid + '\n\n'
-  header += hashes
-  header += content
-  return header
-}
-
 export async function epub2md(bpath)  {
-  log('_fs_path', bpath)
   let data
   try {
     data = await fse.readFile(bpath)
@@ -62,50 +37,33 @@ export async function epub2md(bpath)  {
     let mess = 'wrong epub file' + bpath
     return {descr: mess}
   }
-  log('_fs_data', data.length)
   let {content, tocfile, imgfiles, zfiles} = await zip.loadAsync(data)
     .then(function (zip) {
-      // log('_ZIP.FILES', zip.files)
-
-      // let names = _.map(zip.files, file=> file.name)
-      // names = names.filter(name=> !/image/.test(name))
-      // log('_NAMES', names);
       let tocfile = _.find(zip.files, file=> { return /toc.ncx/.test(file.name) })
       let imgfiles = _.filter(zip.files, zfile=> /image/.test(zfile.name))
       let imgnames = imgfiles.map(imgfile=> imgfile.name)
       log('__IMG', imgnames.length)
       // let imgnames = imgfiles.map(imgfile=> imgfile.name)
-      // log('__IMG', imgnames.slice(-3))
 
       let content = _.find(zip.files, file=> { return /\.opf/.test(file.name) })
       let zfiles = _.filter(zip.files, file=> { return /\.x?html?/.test(file.name) }) // \.html, .xhtml
-      // zfiles.sort(function(a, b){
-        // return naturalCompare(a.name, b.name)
-      // })
       return {content, tocfile, imgfiles, zfiles}
     })
-  // log('_after-cont:', content)
-  // log('_after-zfiles_:', zfiles.length)
-  // return {descr, docs, imgs}
+  // log('_ZFILES_:', zfiles.length)
 
   let tocs = await tocfile
       .async('text')
       .then(data=> {
         return xml2js.parseStringPromise(data).then(function (tocdata) {
-          // log('_TOC', tocdata)
-          // log('_ncx', tocdata.ncx)
           let navMap = tocdata.ncx.navMap
           let navPoint = navMap[0].navPoint
-          // log('_navMap', navPoint)
           let tocs = navPoint.map(row=> {
             return {playOrder: row.$.playOrder, src: row.content[0].$.src, navlabel: row.navLabel[0].text.toString(), cnt: row.content[0].$}
           })
           return tocs
         })
       })
-
   // log('_TOCS_:', tocs.slice(0, 10))
-  // log('_ZFILES_:', zfiles.length)
 
   let descr = await content
       .async('text')
@@ -114,7 +72,6 @@ export async function epub2md(bpath)  {
           let version = content.package.$.version
           let metadata = content.package.metadata[0]
           let author = '', title = '', lang = ''
-          // log('_M', version, metadata)
           if (metadata['dc:creator']) {
             author = metadata['dc:creator'][0]
             if (author._) author = author._
@@ -137,52 +94,17 @@ export async function epub2md(bpath)  {
           return descr
         })
       })
-
   // log('_DESCR', descr)
-  // zfiles = zfiles.slice(21, 22)
 
   let mds = await html2md(zfiles)
   const imgs = await img2files(zfiles)
 
-  let znames = mds.map(md=> md.zname)
-  log('_ZNAMES_:', znames.length)
+  // let znames = mds.map(md=> md.zname)
+  // log('_ZNAMES_:', znames.length)
 
   let ordered = md2toc(tocs, mds)
-  return {descr, mds: ordered, imgs}
-}
-
-function md2toc(tocs, mds) {
-  let ordered = []
-  let title = ['#', 'title'].join(' ')
-  ordered.push(title)
-  tocs.forEach(toc=> {
-    let file  = mds.find(file=> toc.src.split(file.zname).length > 1) // pg-alice
-    // log('_TOC SRC', toc.src)
-    // log('_zname', file.zname)
-    if (!file) {
-      log('_no file toc.src:_', toc)
-      throw new Error()
-    }
-    let head = ['##', toc.navlabel].join(' ')
-    ordered.push(head)
-    file.mds.forEach(md=> {
-      let level
-      md = md.trim()
-      if (!md) return
-      if (/^#/.test(md)) {
-        level = md.match(/#/g).length
-        md = md.replace(/#/g, '').trim()
-        md = ['**', md, '**'].join('')
-      }
-      ordered.push(md)
-    })
-  })
   log('_ORDERED_:', ordered.length)
-  // let zeros = ordered.filter(doc=> !doc.md)
-  // log('_ZEROS', zeros.length)
-  // zname: 'OEBPS/hp05_ch026_en-us.html'
-  //   { playOrder: '13', src: 'hp05_ch007_en-us.html' },
-  return ordered
+  return {descr, mds: ordered, imgs}
 }
 
 async function html2md(zfiles) {
@@ -195,8 +117,6 @@ async function html2md(zfiles) {
     })
 }
 
-// — m-dash
-
 function getMD(zfile) {
   return zfile
     .async('text')
@@ -204,53 +124,70 @@ function getMD(zfile) {
       html = html.split(/<body[^>]*>/)[1]
       if (!html) return
       html = html.split(/<\/body>/)[0]
-      // log('_ZFILE-NAME_', zfile.name)
-      // log('_HTML_', html)
       let md = tdn.turndown(html, tdnopts)
-      // [[XXX](fileposNNN)](dummy_split_NNN.html#fileposNNN)) =>  [XXX](fileposNNN) ; calibre stuff
-      md = md.replace(/\[\[/g, '[').replace(/\)\]\([^\)]*\)/g, '')
+      // [1](dummy_split_005.html#filepos16920) some text // calibre stuff
+      // [[1]](dummy_split_033.html#filepos927831) some text // calibre stuff
+      // [[1](filepos16920)](dummy_split_033.html#filepos927831)
+      // md = md.replace(/(\[[^\]]*\])(\([^\)]*\))/g, "$1") // reference in line
+      // md = md.replace(/^(\[[^\]]\])/, "$1:") // beginning of other line
       let mds = md.split('\n')
-      // mds.forEach(md=> md.trim())
-      // mds = _.compact(mds)
       mds = mds.map(md=> cleanText(md.trim()))
       mds = mds.filter(md => !/header:/.test(md))
       mds = mds.filter(md => md)
-      // mds = mds.slice(0,9)
       let zname = _.last(zfile.name.split(/[@\/]/))
+
+      let refs = mds.filter(md => /^\[/.test(md))
+      if (refs.length) log('_REFS', zname, refs.length)
+      if (zname == 'dummy_split_033.html') {
+        log('_Z', zname, 22, refs.length, 33, mds.length)
+      }
+
       return {zname: zname, mds: mds}
     })
 }
 
+function md2toc(tocs, mds) {
+  let ordered = []
+  let title = ['#', 'title'].join(' ')
+  ordered.push(title)
+  tocs.forEach((toc, idx)=> {
+    let pathnum = idx+1
+    let file  = mds.find(file=> toc.src.split(file.zname).length > 1)
+    if (!file) {
+      log('_no file toc.src:_', toc) // ============= todo : убрать Err
+      throw new Error()
+    }
+    let head = ['##', toc.navlabel].join(' ')
+    log('_H', head, '->', file.zname)
+    ordered.push(head)
+    file.mds.forEach(md=> {
+      let level, path = '01', ppath, restring
+      md = md.trim()
+      if (!md) return
+      if (/^#/.test(md)) {
+        // level = md.match(/#/g).length
+        md = md.replace(/#/g, '').trim()
+        md = ['**', md, '**'].join('')
+      }
+      if (/^\[/.test(md)) { // refs
+        log('_REF', md)
+        ppath = (pathnum <= 9) ? '0' + pathnum.toString() : pathnum.toString()
+        path += ppath
+        restring = '$1: (section-path: ' + ppath + ')'
+        md = md.replace(/^(\[[^\]]\])/, restring)
+      }
+      ordered.push(md)
+    })
+  })
+  // zname: 'OEBPS/hp05_ch026_en-us.html'
+  // { playOrder: '13', src: 'hp05_ch007_en-us.html' },
+  return ordered
+}
+
 // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=128
 function cleanText(str) {
-  if (!str) return ''
   let clean = str.replace(/\s\s+/g, ' ') // .replace(/—/g, ' - ').replace(/’/g, '\'')
   return clean
-}
-
-function export2md(bpath, descr, docs) {
-  const dirpath = path.dirname(bpath)
-  let mdpath = cleanDname(descr.author, descr.title)
-  let dglpath = [mdpath, 'dgl'].join('.')
-  dglpath = path.join(dirpath, dglpath)
-  mdpath = [mdpath, 'md'].join('.')
-  mdpath = path.join(dirpath, mdpath)
-  descr.text = ['file:://', mdpath].join('')
-  fse.writeJson(dglpath, descr, {spaces: 2})
-
-  // mdpath = [mdpath, '_'].join('')
-  log('___WRITING', dglpath)
-  // log('___MDS', mds.length)
-  fse.writeJson(mdpath, docs, {spaces: 2})
-  // let file = fse.createWriteStream(mdpath)
-  // file.on('error', function(err) { log('ERR:', err) })
-  // mds.forEach(row => file.write(`${row}\r\n\r\n`))
-  // file.end()
-}
-
-export function cleanDname(author = '', title = '') {
-  let str = [author.slice(0,25), title.slice(0,25)].join('-')
-  return str.replace(/[)(,\.]/g,'').replace(/\s+/g, '-').replace(/\//g, '_').replace(/^-/, '')
 }
 
 async function img2files(imgfiles) {
