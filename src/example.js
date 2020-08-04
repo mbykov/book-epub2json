@@ -8,16 +8,22 @@ const fse = require('fs-extra')
 let write = process.argv.slice(2)[0] || false
 
 let bpath
-bpath = '../test/Being_Different.epub'
-// bpath = '../test/minimal-v2.epub'
-// bpath = '../test/phoenix-ru.epub'
-// bpath = '../test/phoenix-en.epub'
-// bpath = '../test/Moby-Dick-backwards-nav.epub'
-// bpath = '../test/pg2701.epub'
-// bpath = '../test/alice.epub'
-// bpath = '../test/pg928.epub'
+bpath = 'epub-32-new-features.epub' // v.3.2 - new format
+// bpath = 'cole-voyage-of-life.epub'
 
-bpath = path.resolve(__dirname, bpath)
+// v.2
+// bpath = 'Being_Different.epub'
+// bpath = 'minimal-v2.epub'
+// bpath = 'phoenix-ru.epub'
+// bpath = 'phoenix-en.epub'
+// bpath = 'Moby-Dick-backwards-nav.epub'
+// bpath = 'pg2701.epub'
+// bpath = 'alice.epub'
+// bpath = 'pg928.epub'
+// bpath = 'QuickStartGuide.epub'
+
+
+bpath = path.resolve(__dirname, '../test', bpath)
 log('RUN: BPATH', bpath)
 
 async function start(bpath, write) {
@@ -30,7 +36,7 @@ async function start(bpath, write) {
   // log('_slice', mds.slice(-10))
   // mds = mds.slice(0,5)
   mds.forEach(md=> {
-    // if (md[0] == '#') log('_title:', md)
+    if (md[0] == '#') log('_title:', md)
   })
   if (write) {
     log('___WRITING', bpath)

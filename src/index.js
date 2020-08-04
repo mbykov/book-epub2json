@@ -37,38 +37,45 @@ export async function epub2md(bpath)  {
     let mess = 'wrong epub file' + bpath
     return {descr: mess}
   }
-  let {content, tocfile, imgfiles, zfiles} = await zip.loadAsync(data)
+  let {cont, content, tocfile, imgfiles, zfiles} = await zip.loadAsync(data)
     .then(function (zip) {
+      let cont = _.find(zip.files, file=> { return /container.xml/.test(file.name) })
+      // log('__Z_CONTAINER', cont)
       let tocfile = _.find(zip.files, file=> { return /toc.ncx/.test(file.name) })
       let imgfiles = _.filter(zip.files, zfile=> /image/.test(zfile.name))
+      log('__ZIP-keys', _.keys(zip))
+      let zfnames = _.map(zip.files, zfile=> zfile.name)
+      log('__Z_FILE_NAMES', zfnames)
       let imgnames = imgfiles.map(imgfile=> imgfile.name)
       log('__IMG', imgnames.length)
       // let imgnames = imgfiles.map(imgfile=> imgfile.name)
 
       let content = _.find(zip.files, file=> { return /\.opf/.test(file.name) })
       let zfiles = _.filter(zip.files, file=> { return /\.x?html?/.test(file.name) }) // \.html, .xhtml
-      return {content, tocfile, imgfiles, zfiles}
+      return {cont, content, tocfile, imgfiles, zfiles}
     })
   // log('_ZFILES_:', zfiles.length)
 
-  let tocs = await tocfile
+  let container = await cont
       .async('text')
       .then(data=> {
-        return xml2js.parseStringPromise(data).then(function (tocdata) {
-          let navMap = tocdata.ncx.navMap
-          let navPoint = navMap[0].navPoint
-          let tocs = navPoint.map(row=> {
-            return {playOrder: row.$.playOrder, src: row.content[0].$.src, navlabel: row.navLabel[0].text.toString(), cnt: row.content[0].$}
-          })
-          return tocs
+        return xml2js.parseStringPromise(data).then(function (contdata) {
+          return contdata.container.rootfiles[0].rootfile
+          // let navMap = tocdata.ncx.navMap
+          // let navPoint = navMap[0].navPoint
+          // let tocs = navPoint.map(row=> {
+            // return {playOrder: row.$.playOrder, src: row.content[0].$.src, navlabel: row.navLabel[0].text.toString(), cnt: row.content[0].$}
+          // })
+          // return tocs
         })
       })
-  // log('_TOCS_:', tocs.slice(0, 10))
+  // log('_CONTAINER_:', container)
 
   let descr = await content
       .async('text')
       .then(data=> {
         return xml2js.parseStringPromise(data).then(function (content) {
+          // todo: manifest = content.package.manifest[0].item - true content, {href, id, media-type}
           let version = content.package.$.version
           let metadata = content.package.metadata[0]
           let author = '', title = '', lang = ''
@@ -94,7 +101,21 @@ export async function epub2md(bpath)  {
           return descr
         })
       })
-  // log('_DESCR', descr)
+  log('_DESCR', descr)
+
+  let tocs = await tocfile
+      .async('text')
+      .then(data=> {
+        return xml2js.parseStringPromise(data).then(function (tocdata) {
+          let navMap = tocdata.ncx.navMap
+          let navPoint = navMap[0].navPoint
+          let tocs = navPoint.map(row=> {
+            return {playOrder: row.$.playOrder, src: row.content[0].$.src, navlabel: row.navLabel[0].text.toString(), cnt: row.content[0].$}
+          })
+          return tocs
+        })
+      })
+  // log('_TOCS_:', tocs.slice(0, 10))
 
   let mds = await html2md(zfiles)
   const imgs = await img2files(zfiles)
@@ -102,9 +123,74 @@ export async function epub2md(bpath)  {
   // let znames = mds.map(md=> md.zname)
   // log('_ZNAMES_:', znames.length)
 
+  // return {descr, mds, imgs} // ====================================== XXX убрать
+
   let ordered = md2toc(tocs, mds)
   log('_ORDERED_:', ordered.length)
   return {descr, mds: ordered, imgs}
+}
+
+function md2toc(tocs, mds) {
+  let ordered = []
+  let title = ['#', 'title'].join(' ')
+  ordered.push(title)
+  tocs.forEach((toc, idx)=> {
+    let file  = mds.find(file=> toc.src.split(file.zname).length > 1)
+    if (!file) {
+      log('_no file toc.src:_', toc) // ============= todo : убрать Err
+      throw new Error()
+    }
+    let pathnum = idx+1
+    let level, secpath, restring, path = '01'
+    secpath = (pathnum <= 9) ? '0' + pathnum.toString() : pathnum.toString()
+    path += secpath
+    let head = ['##', toc.navlabel].join(' ')
+    ordered.push(head)
+    // log('_z-h:', head)
+
+    if (!file.added) {
+      ordered.push(...file.mds)
+      file.added = true
+    }
+
+    // ==== значит, вернуться к 2json, а book-json-utils подгружать везде
+    // здесь я получу верный path
+    // == алгоритм:
+    // _toc -> mds -> docs
+    // или все же manifest?
+    //
+
+    // if (!/_023/.test(file.zname)) return
+    let cmds = []
+    let finish = true
+    file.mds.forEach(md=> {
+      // if (!md) return
+      if (/^#/.test(md)) {
+        if (md.split(toc.navlabel).length > 1) finish = false
+        else finish = true
+        // level = md.match(/#/g).length
+        // md = md.replace(/#/g, '').trim()
+        // md = ['**', md, '**'].join('')
+      }
+      if (finish) return
+      cmds.push(md)
+      // if (/\[\[/.test(md)) { // refs
+      //   // log('_REF', md)
+      //   // restring = '$1: (section-path: ' + ppath + ')'
+      //   // md = md.replace(/^(\[[^\]]\])/, restring)
+      // }
+    })
+
+    // log('_CMDS', cmds.length)
+    // log('_z->', file.zname, 'p:', path)
+    // log('_TOC', toc)
+
+    // log('_MDS', file.mds.length)
+    // ordered.push(...cmds)
+  }) /// tocs
+  // zname: 'OEBPS/hp05_ch026_en-us.html'
+  // { playOrder: '13', src: 'hp05_ch007_en-us.html' },
+  return ordered
 }
 
 async function html2md(zfiles) {
@@ -125,15 +211,17 @@ function getMD(zfile) {
       if (!html) return
       html = html.split(/<\/body>/)[0]
       let md = tdn.turndown(html, tdnopts)
+      md = cleanStr(md.trim())
       // [1](dummy_split_005.html#filepos16920) some text // calibre stuff
       // [[1]](dummy_split_033.html#filepos927831) some text // calibre stuff
       // [[1](filepos16920)](dummy_split_033.html#filepos927831)
       // md = md.replace(/(\[[^\]]*\])(\([^\)]*\))/g, "$1") // reference in line
       // md = md.replace(/^(\[[^\]]\])/, "$1:") // beginning of other line
       let mds = md.split('\n')
-      mds = mds.map(md=> cleanText(md.trim()))
-      mds = mds.filter(md => !/header:/.test(md))
-      mds = mds.filter(md => md)
+      // mds = mds.map(md=> cleanText(md.trim()))
+      mds = mds.map(md=> cleanStr(md.trim()))
+      // mds = mds.filter(md => !/header:/.test(md))
+      // mds = mds.filter(md => md)
       let zname = _.last(zfile.name.split(/[@\/]/))
 
       let refs = mds.filter(md => /^\[/.test(md))
@@ -146,48 +234,14 @@ function getMD(zfile) {
     })
 }
 
-function md2toc(tocs, mds) {
-  let ordered = []
-  let title = ['#', 'title'].join(' ')
-  ordered.push(title)
-  tocs.forEach((toc, idx)=> {
-    let pathnum = idx+1
-    let file  = mds.find(file=> toc.src.split(file.zname).length > 1)
-    if (!file) {
-      log('_no file toc.src:_', toc) // ============= todo : убрать Err
-      throw new Error()
-    }
-    let head = ['##', toc.navlabel].join(' ')
-    log('_H', head, '->', file.zname)
-    ordered.push(head)
-    file.mds.forEach(md=> {
-      let level, path = '01', ppath, restring
-      md = md.trim()
-      if (!md) return
-      if (/^#/.test(md)) {
-        // level = md.match(/#/g).length
-        md = md.replace(/#/g, '').trim()
-        md = ['**', md, '**'].join('')
-      }
-      if (/^\[/.test(md)) { // refs
-        log('_REF', md)
-        ppath = (pathnum <= 9) ? '0' + pathnum.toString() : pathnum.toString()
-        path += ppath
-        restring = '$1: (section-path: ' + ppath + ')'
-        md = md.replace(/^(\[[^\]]\])/, restring)
-      }
-      ordered.push(md)
-    })
-  })
-  // zname: 'OEBPS/hp05_ch026_en-us.html'
-  // { playOrder: '13', src: 'hp05_ch007_en-us.html' },
-  return ordered
-}
-
 // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=128
 function cleanText(str) {
   let clean = str.replace(/\s\s+/g, ' ') // .replace(/—/g, ' - ').replace(/’/g, '\'')
   return clean
+}
+
+export function cleanStr(str) {
+  return str.replace(/\n+/g, '\n').replace(/↵+/, '\n').replace(/  +/, ' ') // .replace(/\s+/, ' ')
 }
 
 async function img2files(imgfiles) {
