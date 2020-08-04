@@ -24,7 +24,8 @@ const tdn = new Turndown(tdnopts)
 let rulesup = {
   filter: 'sup',
   replacement: function (content, node) {
-    return '[' + content + '](' + node.id + ')'
+    // return '[' + content + '](' + node.id + ')'
+    return content + ':' + node.id
   }
 }
 tdn.addRule('sup', rulesup)
@@ -45,7 +46,7 @@ export async function epub2md(bpath)  {
       let imgfiles = _.filter(zip.files, zfile=> /image/.test(zfile.name))
       log('__ZIP-keys', _.keys(zip))
       let zfnames = _.map(zip.files, zfile=> zfile.name)
-      log('__Z_FILE_NAMES', zfnames)
+      log('__Z_FILE_NAMES', zfnames.length)
       let imgnames = imgfiles.map(imgfile=> imgfile.name)
       log('__IMG', imgnames.length)
       // let imgnames = imgfiles.map(imgfile=> imgfile.name)
@@ -115,83 +116,54 @@ export async function epub2md(bpath)  {
           return tocs
         })
       })
-  // log('_TOCS_:', tocs.slice(0, 10))
+  // log('_TOCS_:', tocs)
+  // tocs = tocs.filter(toc=> /_023/.test(toc.src))
+  log('_TOCS_:', tocs)
 
   let mds = await html2md(zfiles)
   const imgs = await img2files(zfiles)
 
-  // let znames = mds.map(md=> md.zname)
-  // log('_ZNAMES_:', znames.length)
+  let mdnames = mds.map(md=> md.zname)
+  log('_MDNAMES_:', mdnames)
 
-  // return {descr, mds, imgs} // ====================================== XXX убрать
+  // return {descr, mds, imgs} // ====================================== убрать
 
   let ordered = md2toc(tocs, mds)
   log('_ORDERED_:', ordered.length)
   return {descr, mds: ordered, imgs}
 }
 
-function md2toc(tocs, mds) {
+function md2toc(tocs, filemds) {
   let ordered = []
   let title = ['#', 'title'].join(' ')
   ordered.push(title)
   tocs.forEach((toc, idx)=> {
-    let file  = mds.find(file=> toc.src.split(file.zname).length > 1)
+    let file  = filemds.find(file=> toc.src.split(file.zname).length > 1)
     if (!file) {
       log('_no file toc.src:_', toc) // ============= todo : убрать Err
       throw new Error()
     }
-    let pathnum = idx+1
-    let level, secpath, restring, path = '01'
-    secpath = (pathnum <= 9) ? '0' + pathnum.toString() : pathnum.toString()
-    path += secpath
-    let head = ['##', toc.navlabel].join(' ')
-    ordered.push(head)
-    // log('_z-h:', head)
-
     if (!file.added) {
       ordered.push(...file.mds)
       file.added = true
     }
+  }) // tocs
+  ordered.push('_______NOTES_______')
+  let filenotes = filemds.filter(file=> !file.added)
+  filenotes.forEach(file=> {
+    let notes = file.mds.filter(md=> /^\[/.test(md))
+    ordered.push(...notes)
+  })
 
-    // ==== значит, вернуться к 2json, а book-json-utils подгружать везде
-    // здесь я получу верный path
-    // == алгоритм:
-    // _toc -> mds -> docs
-    // или все же manifest?
-    //
-
-    // if (!/_023/.test(file.zname)) return
-    let cmds = []
-    let finish = true
-    file.mds.forEach(md=> {
-      // if (!md) return
-      if (/^#/.test(md)) {
-        if (md.split(toc.navlabel).length > 1) finish = false
-        else finish = true
-        // level = md.match(/#/g).length
-        // md = md.replace(/#/g, '').trim()
-        // md = ['**', md, '**'].join('')
-      }
-      if (finish) return
-      cmds.push(md)
-      // if (/\[\[/.test(md)) { // refs
-      //   // log('_REF', md)
-      //   // restring = '$1: (section-path: ' + ppath + ')'
-      //   // md = md.replace(/^(\[[^\]]\])/, restring)
-      // }
-    })
-
-    // log('_CMDS', cmds.length)
-    // log('_z->', file.zname, 'p:', path)
-    // log('_TOC', toc)
-
-    // log('_MDS', file.mds.length)
-    // ordered.push(...cmds)
-  }) /// tocs
-  // zname: 'OEBPS/hp05_ch026_en-us.html'
-  // { playOrder: '13', src: 'hp05_ch007_en-us.html' },
   return ordered
 }
+
+// ==== значит, вернуться к 2json, а book-json-utils подгружать везде ====================== XXX
+// здесь я получу верный path
+// == алгоритм:
+// _toc -> mds -> docs
+// затем снова docs -> поиск refs - заполнение refkey, -> генерация ref-path-number
+//
 
 async function html2md(zfiles) {
   return await Promise.all(zfiles.map(zfile=> {
@@ -210,6 +182,11 @@ function getMD(zfile) {
       html = html.split(/<body[^>]*>/)[1]
       if (!html) return
       html = html.split(/<\/body>/)[0]
+      // log('_HTML', html)
+
+      // <a href="dummy_split_033.html#filepos1130550" class="calibre9"><sup id="filepos841754" class="calibre19">1</sup></a>
+      // <p id="filepos1130550" class="calibre18"><a href="dummy_split_025.html#filepos841754" class="calibre9">1</a> Mahabharata, XII.72.20.</p>
+
       let md = tdn.turndown(html, tdnopts)
       md = cleanStr(md.trim())
       // [1](dummy_split_005.html#filepos16920) some text // calibre stuff
@@ -219,16 +196,16 @@ function getMD(zfile) {
       // md = md.replace(/^(\[[^\]]\])/, "$1:") // beginning of other line
       let mds = md.split('\n')
       // mds = mds.map(md=> cleanText(md.trim()))
-      mds = mds.map(md=> cleanStr(md.trim()))
+      // mds = mds.map(md=> cleanStr(md.trim()))
       // mds = mds.filter(md => !/header:/.test(md))
       // mds = mds.filter(md => md)
       let zname = _.last(zfile.name.split(/[@\/]/))
 
-      let refs = mds.filter(md => /^\[/.test(md))
-      if (refs.length) log('_REFS', zname, refs.length)
-      if (zname == 'dummy_split_033.html') {
-        log('_Z', zname, 22, refs.length, 33, mds.length)
-      }
+      // let refs = mds.filter(md => /^\[/.test(md))
+      // if (refs.length) log('_REFS', zname, refs.length)
+      // if (zname == 'dummy_split_033.html') {
+      //   log('_Z', zname, 22, refs.length, 33, mds.length)
+      // }
 
       return {zname: zname, mds: mds}
     })

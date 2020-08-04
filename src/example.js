@@ -12,7 +12,6 @@ bpath = 'epub-32-new-features.epub' // v.3.2 - new format
 // bpath = 'cole-voyage-of-life.epub'
 
 // v.2
-// bpath = 'Being_Different.epub'
 // bpath = 'minimal-v2.epub'
 // bpath = 'phoenix-ru.epub'
 // bpath = 'phoenix-en.epub'
@@ -20,8 +19,8 @@ bpath = 'epub-32-new-features.epub' // v.3.2 - new format
 // bpath = 'pg2701.epub'
 // bpath = 'alice.epub'
 // bpath = 'pg928.epub'
-// bpath = 'QuickStartGuide.epub'
-
+bpath = 'QuickStartGuide.epub'
+bpath = 'Being_Different.epub'
 
 bpath = path.resolve(__dirname, '../test', bpath)
 log('RUN: BPATH', bpath)
