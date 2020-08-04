@@ -17,15 +17,13 @@ const tdnopts = {
   linkReferenceStyle: 'full' // full, collapsed, or shortcut
 }
 
-// const Turndown = require('turndown')
 import Turndown from 'turndown'
 const tdn = new Turndown(tdnopts)
 
 let rulesup = {
   filter: 'sup',
   replacement: function (content, node) {
-    // return '[' + content + '](' + node.id + ')'
-    return content + ':' + node.id
+    return content + ':' + node.id.replace('filepos', '')
   }
 }
 tdn.addRule('sup', rulesup)
@@ -38,45 +36,38 @@ export async function epub2md(bpath)  {
     let mess = 'wrong epub file' + bpath
     return {descr: mess}
   }
-  let {cont, content, tocfile, imgfiles, zfiles} = await zip.loadAsync(data)
+  let {content, tocfile, imgfiles, zfiles} = await zip.loadAsync(data)
     .then(function (zip) {
-      let cont = _.find(zip.files, file=> { return /container.xml/.test(file.name) })
+      // let contfile = _.find(zip.files, file=> { return /container.xml/.test(file.name) })
       // log('__Z_CONTAINER', cont)
       let tocfile = _.find(zip.files, file=> { return /toc.ncx/.test(file.name) })
       let imgfiles = _.filter(zip.files, zfile=> /image/.test(zfile.name))
-      log('__ZIP-keys', _.keys(zip))
+      // log('__ZIP-keys', _.keys(zip))
       let zfnames = _.map(zip.files, zfile=> zfile.name)
-      log('__Z_FILE_NAMES', zfnames.length)
+      // log('__Z_FILE_NAMES', zfnames.length)
       let imgnames = imgfiles.map(imgfile=> imgfile.name)
-      log('__IMG', imgnames.length)
+      // log('__IMG', imgnames.length)
       // let imgnames = imgfiles.map(imgfile=> imgfile.name)
 
       let content = _.find(zip.files, file=> { return /\.opf/.test(file.name) })
       let zfiles = _.filter(zip.files, file=> { return /\.x?html?/.test(file.name) }) // \.html, .xhtml
-      return {cont, content, tocfile, imgfiles, zfiles}
+      return {content, tocfile, imgfiles, zfiles}
     })
   // log('_ZFILES_:', zfiles.length)
 
-  let container = await cont
-      .async('text')
-      .then(data=> {
-        return xml2js.parseStringPromise(data).then(function (contdata) {
-          return contdata.container.rootfiles[0].rootfile
-          // let navMap = tocdata.ncx.navMap
-          // let navPoint = navMap[0].navPoint
-          // let tocs = navPoint.map(row=> {
-            // return {playOrder: row.$.playOrder, src: row.content[0].$.src, navlabel: row.navLabel[0].text.toString(), cnt: row.content[0].$}
-          // })
-          // return tocs
-        })
-      })
-  // log('_CONTAINER_:', container)
+  // let container = await contfile
+  //     .async('text')
+  //     .then(data=> {
+  //       return xml2js.parseStringPromise(data).then(function (contdata) {
+  //         return contdata.container.rootfiles[0].rootfile
+  //       })
+  //     })
+  // // log('_CONTAINER_:', container)
 
   let descr = await content
       .async('text')
       .then(data=> {
         return xml2js.parseStringPromise(data).then(function (content) {
-          // todo: manifest = content.package.manifest[0].item - true content, {href, id, media-type}
           let version = content.package.$.version
           let metadata = content.package.metadata[0]
           let author = '', title = '', lang = ''
@@ -102,7 +93,7 @@ export async function epub2md(bpath)  {
           return descr
         })
       })
-  log('_DESCR', descr)
+  // log('_DESCR', descr)
 
   let tocs = await tocfile
       .async('text')
@@ -117,19 +108,15 @@ export async function epub2md(bpath)  {
         })
       })
   // log('_TOCS_:', tocs)
-  // tocs = tocs.filter(toc=> /_023/.test(toc.src))
-  log('_TOCS_:', tocs)
 
   let mds = await html2md(zfiles)
   const imgs = await img2files(zfiles)
 
-  let mdnames = mds.map(md=> md.zname)
-  log('_MDNAMES_:', mdnames)
-
-  // return {descr, mds, imgs} // ====================================== убрать
+  // let mdnames = mds.map(md=> md.zname)
+  // log('_MDNAMES_:', mdnames)
 
   let ordered = md2toc(tocs, mds)
-  log('_ORDERED_:', ordered.length)
+  // log('_ORDERED_:', ordered.length)
   return {descr, mds: ordered, imgs}
 }
 
@@ -140,7 +127,7 @@ function md2toc(tocs, filemds) {
   tocs.forEach((toc, idx)=> {
     let file  = filemds.find(file=> toc.src.split(file.zname).length > 1)
     if (!file) {
-      log('_no file toc.src:_', toc) // ============= todo : убрать Err
+      log('_no file toc.src:_', toc) // ============= todo : убрать Err, => return
       throw new Error()
     }
     if (!file.added) {
@@ -148,22 +135,13 @@ function md2toc(tocs, filemds) {
       file.added = true
     }
   }) // tocs
-  ordered.push('_______NOTES_______')
   let filenotes = filemds.filter(file=> !file.added)
   filenotes.forEach(file=> {
     let notes = file.mds.filter(md=> /^\[/.test(md))
     ordered.push(...notes)
   })
-
   return ordered
 }
-
-// ==== значит, вернуться к 2json, а book-json-utils подгружать везде ====================== XXX
-// здесь я получу верный path
-// == алгоритм:
-// _toc -> mds -> docs
-// затем снова docs -> поиск refs - заполнение refkey, -> генерация ref-path-number
-//
 
 async function html2md(zfiles) {
   return await Promise.all(zfiles.map(zfile=> {
@@ -180,42 +158,35 @@ function getMD(zfile) {
     .async('text')
     .then(html => {
       html = html.split(/<body[^>]*>/)[1]
-      if (!html) return
+      if (!html) return {zname: '_html_file_non_found_', mds: []}
       html = html.split(/<\/body>/)[0]
-      // log('_HTML', html)
-
-      // <a href="dummy_split_033.html#filepos1130550" class="calibre9"><sup id="filepos841754" class="calibre19">1</sup></a>
-      // <p id="filepos1130550" class="calibre18"><a href="dummy_split_025.html#filepos841754" class="calibre9">1</a> Mahabharata, XII.72.20.</p>
 
       let md = tdn.turndown(html, tdnopts)
       md = cleanStr(md.trim())
-      // [1](dummy_split_005.html#filepos16920) some text // calibre stuff
-      // [[1]](dummy_split_033.html#filepos927831) some text // calibre stuff
-      // [[1](filepos16920)](dummy_split_033.html#filepos927831)
-      // md = md.replace(/(\[[^\]]*\])(\([^\)]*\))/g, "$1") // reference in line
-      // md = md.replace(/^(\[[^\]]\])/, "$1:") // beginning of other line
       let mds = md.split('\n')
-      // mds = mds.map(md=> cleanText(md.trim()))
-      // mds = mds.map(md=> cleanStr(md.trim()))
-      // mds = mds.filter(md => !/header:/.test(md))
-      // mds = mds.filter(md => md)
+      let reftn = /(\[[^:]*:[^\]]*\])\([^\)]*\)/g
+      let reref = /^\[([^\]]*)\]\([^#]*#filepos([^\)]*)\)/
+      mds = mds.map(md=> {
+        return md.replace(reftn, "$1").replace(reref, "[$1:$2]")
+      })
+
+      // [1:16920](dummy_split_033.html#filepos927831)
+      // [23](dummy_split_028.html#filepos908168) Skilful
       let zname = _.last(zfile.name.split(/[@\/]/))
 
-      // let refs = mds.filter(md => /^\[/.test(md))
-      // if (refs.length) log('_REFS', zname, refs.length)
-      // if (zname == 'dummy_split_033.html') {
-      //   log('_Z', zname, 22, refs.length, 33, mds.length)
-      // }
+      // reb = /^\[([^\]]*)\]/
+      // b.replace(reb, "[$1:xxx]")
+
 
       return {zname: zname, mds: mds}
     })
 }
 
 // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=128
-function cleanText(str) {
-  let clean = str.replace(/\s\s+/g, ' ') // .replace(/—/g, ' - ').replace(/’/g, '\'')
-  return clean
-}
+// function cleanText(str) {
+//   let clean = str.replace(/\s\s+/g, ' ') // .replace(/—/g, ' - ').replace(/’/g, '\'')
+//   return clean
+// }
 
 export function cleanStr(str) {
   return str.replace(/\n+/g, '\n').replace(/↵+/, '\n').replace(/  +/, ' ') // .replace(/\s+/, ' ')
