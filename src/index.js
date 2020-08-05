@@ -167,7 +167,7 @@ function getMD(zfile) {
       let reftn = /(\[[^:]*:[^\]]*\])\([^\)]*\)/g
       let reref = /^\[([^\]]*)\]\([^#]*#filepos([^\)]*)\)/
       mds = mds.map(md=> {
-        return md.replace(reftn, "$1").replace(reref, "[$1:$2]")
+        return md.replace(reftn, "$1").replace(reref, "[$1:$2]:")
       })
 
       // [1:16920](dummy_split_033.html#filepos927831)
