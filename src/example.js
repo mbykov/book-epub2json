@@ -15,12 +15,13 @@ bpath = 'epub-32-new-features.epub' // v.3.2 - new format
 // bpath = 'minimal-v2.epub'
 // bpath = 'phoenix-ru.epub'
 // bpath = 'phoenix-en.epub'
-// bpath = 'Moby-Dick-backwards-nav.epub'
-// bpath = 'pg2701.epub'
-// bpath = 'alice.epub'
-// bpath = 'pg928.epub'
+// bpath = 'The_Myth_of_Sisyphus.epub'
 bpath = 'QuickStartGuide.epub'
 bpath = 'Being_Different.epub'
+bpath = 'The Hindus - An Alternative History.epub'
+
+// две части - a:number, [а] - видно, number - сквозной в данном файле номер; в коде: - [a](filename#number)
+//
 
 bpath = path.resolve(__dirname, '../test', bpath)
 log('RUN: BPATH', bpath)

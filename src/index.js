@@ -23,10 +23,19 @@ const tdn = new Turndown(tdnopts)
 let rulesup = {
   filter: 'sup',
   replacement: function (content, node) {
-    return content + ':' + node.id.replace('filepos', '')
+    return content + ':' + node.id //.replace('filepos', '')
   }
 }
 tdn.addRule('sup', rulesup)
+
+let arule = {
+  filter: 'a',
+  replacement: function (content, node) {
+    return content + ':' + node.id //.replace('filepos', '')
+  }
+}
+// tdn.addRule('a', arule)
+// ============ here - пока либо то, либо другое
 
 export async function epub2md(bpath)  {
   let data
@@ -135,6 +144,7 @@ function md2toc(tocs, filemds) {
       file.added = true
     }
   }) // tocs
+
   let filenotes = filemds.filter(file=> !file.added)
   filenotes.forEach(file=> {
     let notes = file.mds.filter(md=> /^\[/.test(md))
@@ -160,12 +170,14 @@ function getMD(zfile) {
       html = html.split(/<body[^>]*>/)[1]
       if (!html) return {zname: '_html_file_non_found_', mds: []}
       html = html.split(/<\/body>/)[0]
+      log('_HTML', html)
 
       let md = tdn.turndown(html, tdnopts)
       md = cleanStr(md.trim())
       let mds = md.split('\n')
       let reftn = /(\[[^:]*:[^\]]*\])\([^\)]*\)/g
-      let reref = /^\[([^\]]*)\]\([^#]*#filepos([^\)]*)\)/
+      // let reref = /^\[([^\]]*)\]\([^#]*#filepos([^\)]*)\)/
+      let reref = /^\[([^\]]*)\]\([^#]*#([^\)]*)\)/
       mds = mds.map(md=> {
         return md.replace(reftn, "$1").replace(reref, "[$1:$2]:")
       })
