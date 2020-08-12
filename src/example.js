@@ -24,7 +24,7 @@ bpath = 'Quick-Start-Guide.epub'
 bpath = path.resolve(__dirname, '../../epub-samples', bpath)
 
 async function start(bpath, write) {
-
+  log('_epub2md-bpath_', bpath)
   let {descr, mds, imgs} = await epub2md(bpath)
   // if (!mds) log('_ERR MESS', descr); return
 
