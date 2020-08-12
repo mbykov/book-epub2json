@@ -4,36 +4,6 @@ import _ from 'lodash'
 import EPub from 'epub'
 const cheerio = require('cheerio')
 
-// import Turndown from 'turndown'
-// const tdnopts = {
-//   linkStyle: 'inlined', // inlined or referenced
-//   linkReferenceStyle: 'full' // full, collapsed, or shortcut
-// }
-// const tdn = new Turndown(tdnopts)
-
-// let arule = {
-//   filter: 'a',
-//   replacement: function (content, node) {
-//     if (!content) return
-//     // if (!node.id) return
-//     // log('_A_NODE.id', node.id)
-//     let href = node.getAttribute('href')
-//     if (!href) return
-//     let noteref
-//     if (href) {
-//       noteref = href.split('#')[1]
-//     }
-//     if (!noteref) return
-//     content = content.replace(/\\?\[/, '').replace(/\\?\]/, '')
-//     log('_A_HREF:', noteref, '_CONT:', content, '_node.id:', node.id)
-//     content = 'CONT:_' + content + '_CONT'
-
-//     // return content + ':' + node.id
-//     return content + '______::' + noteref +'__::'
-//   }
-// }
-// tdn.addRule('a', arule)
-
 const iso6393 = require('iso-639-3')
 const log = console.log
 
