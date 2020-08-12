@@ -2,6 +2,23 @@
 
 import _ from 'lodash'
 import EPub from 'epub'
+
+import Turndown from 'turndown'
+const tdnopts = {
+  linkStyle: 'inlined', // inlined or referenced
+  linkReferenceStyle: 'full' // full, collapsed, or shortcut
+}
+const tdn = new Turndown(tdnopts)
+
+let arule = {
+  filter: 'a',
+  replacement: function (content, node) {
+    // log('_A_NODE', node.id)
+    return content + ':' + node.id
+  }
+}
+// tdn.addRule('a', arule)
+
 const iso6393 = require('iso-639-3')
 const log = console.log
 
@@ -33,7 +50,11 @@ async function getMDs(epub) {
   for await (let chapter of epub.flow) {
     // let {err, text} = await getChapter(epub, chapter.id)
     let html  = await getChapter(epub, chapter.id)
-    log('_HTML', chapter.id, html.length)
+
+    // log('_HTML', chapter.id, html)
+    let md = tdn.turndown(html)
+    log('_MD', chapter.id, md)
+
     ids.push(chapter.id)
   }
   log('_IDS', ids)

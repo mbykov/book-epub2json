@@ -17,7 +17,7 @@ let bpath = 'file-1.epub'
 bpath = path.resolve(__dirname, '../test', bpath)
 
 bpath = 'Popular-scientific-lectures.epub'
-bpath = 'Quick-Start-Guide.epub'
+// bpath = 'Quick-Start-Guide.epub'
 // bpath = 'aliceDynamic.epub'
 // bpath = 'epub30-spec.epub'
 
