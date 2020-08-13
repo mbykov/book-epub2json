@@ -17,3 +17,8 @@ export const htmlChunk = `
 `
 
 // practical value.<a id="FNanchor_76_76"/><a href="chapters/item19/OEBPS/@public@vhost@g@gutenberg@html@files@39508@39508-h@39508-h-14.htm.html#Footnote_76_76" class="fnanchor pginternal">[76]</a></p>
+
+// <p><a id="Footnote_76_76"></a><a href="chapters/item11/OEBPS/@public@vhost@g@gutenberg@html@files@39508@39508-h@39508-h-6.htm.html#FNanchor_76_76" class="pginternal"><span class="label">[76]</span></a> I am well aware
+
+// <a - не первый child
+// - а в footnote - первый

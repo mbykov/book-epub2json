@@ -54,33 +54,48 @@ function getEpub(bpath) {
 async function getMDs(epub) {
   let docs = []
   let fns = []
+  let chapterid = 0
   for await (let chapter of epub.flow) {
 
-    if (chapter.id != 'item11') continue
+    // if (chapter.id != 'item11') continue
     let html  = await getChapter(epub, chapter.id)
     // html = htmlChunk.trim()
     // log('_HTML', chapter.id, '====================================\n', chapter.id, html)
 
     const frag = JSDOM.fragment(html)
-    let children = frag.children
-    _.each(children, el=> {
-      let doc = {_id: ''}
+    let pars = frag.querySelectorAll('p')
+    let parid = 0
+    _.each(pars, el=> {
+      let _id = [chapterid, parid].join('-')
+      let doc = {_id: _id}
       let md = el.textContent.trim()
       if (!md) return
-      log('_CH', el.nodeName, el.id)
+
+      // if (!/\[76/.test(md)) return
+      // log('_76', el.outerHTML)
+      // log('_CH', el.nodeName, el.id)
+
       if (el.nodeName == 'P') {
-        let pid = el.id
+        let pid = el.id // calibre v.2 <p id>
+        if (!pid) {
+          let firstel = el.firstChild // gutenberg <p><a id>
+          if (firstel.nodeName == 'A') {
+            pid = firstel.id
+          }
+        }
         if (fns.includes(pid)) {
-          log('_________FN PID', pid)
-          doc.id = pid
-          doc.type = 'fn'
+          doc._id = pid
+          doc.footnote = true
+          doc.md = md
+          docs.push(doc)
+          return
         }
         let aels = el.querySelectorAll('a')
         _.each(aels, ael=> {
           let {fn, noteref} = getNoteRef(ael)
           if (!fn) return
           md = md.replace(ael.textContent, noteref)
-          doc.href = fn // =================== todo: все-таки нужно делать noteref : noteid, а noteid : chapter.id - fn - ссылок много в параграфе =====
+          doc.href = true // =================== todo: все-таки нужно делать noteref : noteid, а noteid : chapter.id - fn - ссылок много в параграфе =====
           fns.push(fn)
         })
         doc.md = md
@@ -89,24 +104,29 @@ async function getMDs(epub) {
       } else if (el.nodeName == 'UL') {
         let olines = el.children
         _.each(olines, el=> {
-          // oline
         })
       }
+      parid++
     })
-    log('_CHs', children.length)
+    // log('_CHs', children.length)
+    chapterid++
   }
-  log('_FNS', fns)
-  log('_DOCS', docs)
+  log('_FNS', fns.slice(0,5))
+  let footnotes = docs.filter(doc=> doc.footnote)
+  let hrefs = docs.filter(doc=> doc.href)
+  log('_HREFS', hrefs.slice(0,5))
+  log('_FNS', footnotes.slice(0,5))
 
   return ['kuku']
 }
 
+// noteref:chid-fn
 function getNoteRef(ael) {
   let fn = ael.getAttribute('href')
   if (!fn) return {fn: null}
   fn = fn.split('#')[1]
   let noteref = ael.textContent.replace(/\[/g, '').replace(/\]/g, '')
-  noteref = ['[', noteref, ']'].join('')
+  noteref = ['[', noteref, ':', fn, ']'].join('')
   // log('_A:', ael.outerHTML, '_FN:', fn)
   // log('_Z', ael.textContent)
   // log('_REF', noteref)
