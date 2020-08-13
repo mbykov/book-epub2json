@@ -19,23 +19,12 @@ export async function epub2md(bpath) {
   let iso = _.find(iso6393, iso=> iso.iso6391 == lang)
   if (iso) lang = iso.iso6393
   let descr = {author: meta.creator, title: meta.title, lang: lang} // , description: meta
-  let mds = await getMDs(epub)
-  // let mds = []
+  let docs = []
+  docs = await getMDs(epub)
 
-  // let html = '<html><p>some text </p><p><a href="xxx#yyy" class="www">zzz</a></p><p class="ptext">p-text-par</p></html>'
-  // // let ahtml = dom.window.document.querySelector("a").outerHTML
-  // let el = q(html, 'a')
-  // log('_A-html', el.outerHTML)
-  // log('_A-href', el.getAttribute('href'))
 
-  // let $ = cheerio.load(html)
-  // log('_HTML', $.html())
-  // let ahref = cheerio.html($('a'))
-  // // let alink = $('a').attr('href')
-  // log('_A_HREF', ahref)
-
-  // log('_APPLE', $('.www').attr('id', 'favorite').html())
-  return {descr: descr, mds: mds, imgs: []}
+  // log('_META', epub.toc)
+  return {descr, docs, imgs: []}
 }
 
 function getEpub(bpath) {
@@ -56,13 +45,23 @@ async function getMDs(epub) {
   let fns = []
   let chapterid = 0
   for await (let chapter of epub.flow) {
+    // log('_HTML', chapter.id)
+    // continue
 
     // if (chapter.id != 'item11') continue
+    // if (chapter.id != 'c06') continue
+
     let html  = await getChapter(epub, chapter.id)
     // html = htmlChunk.trim()
     // log('_HTML', chapter.id, '====================================\n', chapter.id, html)
 
+    // <i class="calibre3">Jaiminiya Brahmana</i> (c. 600 BCE)<a href="doni_9781101028704_oeb_nts_r1_split_000.html#en388" id="Ref-en388"><sup class="calibre6">2</sup></a>
+
     const frag = JSDOM.fragment(html)
+    // let pars = frag.children
+    // let pars = frag.querySelectorAll('div')
+    // log('_PARS', pars.length)
+
     let pars = frag.querySelectorAll('p')
     let parid = 0
     _.each(pars, el=> {
@@ -70,10 +69,14 @@ async function getMDs(epub) {
       let doc = {_id: _id}
       let md = el.textContent.trim()
       if (!md) return
+      // log('_HTML', parid, '====================================\n', chapter.id, html)
 
       // if (!/\[76/.test(md)) return
-      // log('_76', el.outerHTML)
+      // if (!/en388/.test(el.outerHTML)) return
+      // log('_only:', el.outerHTML)
       // log('_CH', el.nodeName, el.id)
+
+      // walk - hasChildren => etc ? <=========================== HERE
 
       if (el.nodeName == 'P') {
         let pid = el.id // calibre v.2 <p id>
@@ -95,7 +98,7 @@ async function getMDs(epub) {
           let {fn, noteref} = getNoteRef(ael)
           if (!fn) return
           md = md.replace(ael.textContent, noteref)
-          doc.href = true // =================== todo: все-таки нужно делать noteref : noteid, а noteid : chapter.id - fn - ссылок много в параграфе =====
+          doc.href = true
           fns.push(fn)
         })
         doc.md = md

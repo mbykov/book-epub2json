@@ -22,3 +22,9 @@ export const htmlChunk = `
 
 // <a - не первый child
 // - а в footnote - первый
+
+
+//
+
+// file:///tmp/.private/michael/atril-751/The_Myth_of_Sisyphus.epubBHBGP0/OEBPS/Text/Endnote05.xhtml
+// file:///tmp/.private/michael/atril-751/The_Myth_of_Sisyphus.epubBHBGP0/OEBPS/Text/Piece01.Chapter01.xhtml#endnote05
