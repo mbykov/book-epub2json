@@ -58,7 +58,7 @@ async function getMDs(epub) {
 
     if (chapter.id != 'item11') continue
     let html  = await getChapter(epub, chapter.id)
-    html = htmlChunk.trim()
+    // html = htmlChunk.trim()
     // log('_HTML', chapter.id, '====================================\n', chapter.id, html)
 
     const frag = JSDOM.fragment(html)
@@ -66,6 +66,7 @@ async function getMDs(epub) {
     _.each(children, el=> {
       let doc = {_id: ''}
       let md = el.textContent.trim()
+      if (!md) return
       log('_CH', el.nodeName, el.id)
       if (el.nodeName == 'P') {
         let pid = el.id
@@ -77,8 +78,9 @@ async function getMDs(epub) {
         let aels = el.querySelectorAll('a')
         _.each(aels, ael=> {
           let {fn, noteref} = getNoteRef(ael)
+          if (!fn) return
           md = md.replace(ael.textContent, noteref)
-          // doc.ref = fn
+          doc.href = fn // =================== todo: все-таки нужно делать noteref : noteid, а noteid : chapter.id - fn - ссылок много в параграфе =====
           fns.push(fn)
         })
         doc.md = md
@@ -100,8 +102,9 @@ async function getMDs(epub) {
 }
 
 function getNoteRef(ael) {
-  let fn = ael.getAttribute('href').split('#')[1]
-  if (!fn) return
+  let fn = ael.getAttribute('href')
+  if (!fn) return {fn: null}
+  fn = fn.split('#')[1]
   let noteref = ael.textContent.replace(/\[/g, '').replace(/\]/g, '')
   noteref = ['[', noteref, ']'].join('')
   // log('_A:', ael.outerHTML, '_FN:', fn)
