@@ -2,10 +2,10 @@
 
 export const htmlChunk = `
 
-<p>some text</p>
-<p>some text </p>
-<p>with alink <a href="xxx#yyy">zzz</a><</p>
-<p class="ptext">p-text-par</p>
+<p>par some text</p>
+<p>par some other text </p>
+<p>par with alink <a href="xxx#yyy">[[zzz]]</a></p>
+<p class="ptext">par p-text-par <a href="xxx#yyy">z1</p>
 <ul class="list">
   <li>line string 1</li>
   <li>line string 2</li>

@@ -50,11 +50,13 @@ function getEpub(bpath) {
 }
 
 // пока что только tags: h, p, ul, img ???, todo: table
+// что делать с em, bold - линеарными тегами? пока пропустить?
 async function getMDs(epub) {
   let docs = []
   let ids = []
   let ftns = []
   for await (let chapter of epub.flow) {
+
     if (chapter.id != 'item11') continue
     let html  = await getChapter(epub, chapter.id)
     html = htmlChunk.trim()
@@ -63,18 +65,24 @@ async function getMDs(epub) {
     const frag = JSDOM.fragment(html)
     let children = frag.children
     _.each(children, el=> {
+      let doc = {_id: ''}
+      let md
       log('_CH', el.nodeName)
       if (el.nodeName == 'P') {
+        md = el.textContent
+        let aels = el.querySelectorAll('a')
+        _.each(aels, ael=> {
+          let noteref = getNoteRef(ael)
+          md = md.replace(ael.textContent, noteref)
+        })
+        doc.md = md
+        docs.push(doc)
 
       } else if (el.nodeName == 'UL') {
         let olines = el.children
         _.each(olines, el=> {
-
+          // oline
         })
-      }
-      let footnote = el.querySelector('a')
-      if (footnote) {
-        log('_A-FN', footnote.outerHTML)
       }
     })
     log('_CHs', children.length)
@@ -82,8 +90,19 @@ async function getMDs(epub) {
     ids.push(chapter.id)
   }
   log('_IDS', ids)
+  log('_DOCS', docs)
 
   return ['kuku']
+}
+
+function getNoteRef(ael) {
+  let fn = ael.getAttribute('href').split('#')[1]
+  if (!fn) return
+  let noteref = ['[', ael.textContent, ']'].join('').replace(/\[\[*/g, '[').replace(/\]\]*/g, ']')
+  // log('_A:', ael.outerHTML, '_FN:', fn)
+  // log('_Z', ael.textContent)
+  // log('_REF', noteref)
+  return noteref
 }
 
 function q(html, selector) {
