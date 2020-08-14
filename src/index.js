@@ -73,7 +73,7 @@ async function getMDs(epub) {
       // log('_NODE:', node.nodeName, node.id)
       let md = node.textContent.trim()
       if (!md) return
-      let doc = {_id: ''}
+      let doc = {_id: '', path: ''}
       md = node.textContent.slice(0,5).trim() // todo: <<==========
       if (/H\d/.test(node.nodeName)) {
         if (chapter.length) {
@@ -88,9 +88,9 @@ async function getMDs(epub) {
         else levnumkey[doc.level] = 0
         // doc.levnum = levnumkey[doc.level]
         if (prevheader.level === doc.level) path = [prevheader.path.slice(0,-1), levnumkey[doc.level]].join('')
-        else if (prevheader.level < doc.level) levnumkey[doc.level] = 0, path = [prevheader.path, doc.level, levnumkey[doc.level]].join('')
+        else if (prevheader.level < doc.level) path = [prevheader.path, doc.level, levnumkey[doc.level]].join('') // levnumkey[doc.level] = 0,
         else if (prevheader.level > doc.level) {
-          parent = _.last(_.filter(docs, (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: '00'}
+          parent = _.last(_.filter(_.flatten(docs), (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: _.flatten(docs)[0].path}
           path = [parent.path, doc.level, levnumkey[doc.level]].join('')
         }
         prevheader = doc
