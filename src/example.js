@@ -42,20 +42,17 @@ async function start(bpath, write) {
   log('_imgs', imgs.length)
   // log('_slice', mds.slice(-10))
 
-  return
-
-  // mds = mds.slice(0,5)
-  mds.forEach(md=> {
-    if (md[0] == '#') log('_title:', md)
+  // docs = docs.slice(0,5)
+  docs.forEach(doc=> {
+    if (doc.level) log('_title:', doc)
   })
+
   if (write) {
     log('___WRITING', bpath)
     // writeFiles(bpath, descr, mds)
   } else {
-    return {descr, mds, imgs}
+    return {descr, docs, imgs}
   }
 }
 
 start(bpath)
-
-// console.log("\n\nHas index been transpiled?\n" + xdxf());

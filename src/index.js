@@ -20,10 +20,7 @@ export async function epub2md(bpath) {
   let iso = _.find(iso6393, iso=> iso.iso6391 == lang)
   if (iso) lang = iso.iso6393
   let descr = {author: meta.creator, title: meta.title, lang: lang} // , description: meta
-  let docs = []
-  docs = await getMDs(epub)
-
-
+  let docs = await getMDs(epub)
   // log('_META', epub.toc)
   return {descr, docs, imgs: []}
 }
@@ -48,8 +45,7 @@ async function getMDs(epub) {
   for await (let flowchapter of epub.flow) {
     // log('_HTML', chapter.id)
     // continue
-
-    if (flowchapter.id != 'item11') continue // astronomy
+    // if (flowchapter.id != 'item11') continue // astronomy
     // if (flowchapter.id != 'c06') continue // hindus
 
     let html  = await getChapter(epub, flowchapter.id)
@@ -77,7 +73,7 @@ async function getMDs(epub) {
           let firstel = node.firstChild // gutenberg <p><a id>
           if (firstel && firstel.nodeName == 'A') pid = firstel.id
         }
-        log('_PID', pid)
+        // log('_PID', pid)
         if (fns.includes(pid)) {
           doc._id = ['ref', pid].join('-')
           doc.footnote = true
@@ -87,7 +83,7 @@ async function getMDs(epub) {
           _.each(aels, ael=> {
             let {fn, noteref} = getNoteRef(ael)
             if (!fn) return
-            log('____NOTEREF', noteref, 'FN', fn)
+            // log('____NOTEREF', noteref, 'FN', fn)
             md = md.replace(ael.textContent, noteref)
             doc.href = true
             fns.push(fn)
@@ -115,18 +111,11 @@ async function getMDs(epub) {
       chapter.push(doc)
     })
     if (chapter.length) docs.push(chapter)
-    // log('___DOCS', docs)
     chapterid++
   }
-  log('_FNS', fns.slice(0,5))
-  let footnotes = docs.filter(doc=> doc.footnote)
-  let hrefs = docs.filter(doc=> doc.href)
-  // log('_HREFS', hrefs.slice(0,5))
-  // log('_FNS', footnotes.slice(0,5))
-  // log('_DOCS_____:', docs.slice(0,5))
-  log('_DOCS_____:', docs)
-
-  return ['kuku']
+  log('___DOCS', docs)
+  // log('_FNS', fns.slice(0,5))
+  return _.flatten(docs)
 }
 
 // noteref:chid-fn
