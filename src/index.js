@@ -20,7 +20,12 @@ export async function epub2md(bpath) {
   let iso = _.find(iso6393, iso=> iso.iso6391 == lang)
   if (iso) lang = iso.iso6393
   let descr = {author: meta.creator, title: meta.title, lang: lang} // , description: meta
-  let docs = await getMDs(epub)
+  let docs
+  try {
+    docs = await getMDs(epub)
+  } catch(err) {
+    docs = []
+  }
   // log('_META', epub.toc)
   return {descr, docs, imgs: []}
 }
@@ -59,22 +64,24 @@ async function getMDs(epub) {
   for await (let flowchapter of epub.flow) {
     // log('_CH ID:', flowchapter.id)
     // continue
-    if (flowchapter.id != 'item5') continue // astronomy
+    if (flowchapter.id != 'item11') continue // astronomy
     // if (flowchapter.id != 'c06') continue // hindus
 
     let html  = await getChapter(epub, flowchapter.id)
-    // html = htmlChunk.trim()
+    html = htmlChunk.trim()
     // log('_HTML', flowchapter.id, '====================================\n', flowchapter.id, html)
+    html = html.replace(/\/>/g, '/></a>')
 
     let docid = 0
     let chapter = []
     const dom = new JSDOM(html)
+    // dom = new JSDOM(html, {contentType: "application/xhtml+xml"})
+    // dom = new JSDOM(html, {contentType: "text/html"})
     walk(dom.window.document.body.childNodes, function (node) {
-      // log('_NODE:', node.nodeName, node.id)
       let md = node.textContent.trim()
       if (!md) return
       let doc = {_id: '', path: ''}
-      md = node.textContent.slice(0,5).trim() // todo: <<==========
+      md = md.slice(0,6) // nb: todo: <<==========
       if (/H\d/.test(node.nodeName)) {
         if (chapter.length) {
           chapter[0].size = chapter.length
@@ -96,12 +103,16 @@ async function getMDs(epub) {
         prevheader = doc
 
         // md = ['#'.repeat(doc.level), md].join(' ')
-      } else if (node.nodeName == 'P') {
+      } else if (node.nodeName === 'DIV') {
+        // log('____DIV', md)
+        return
+      } else if (node.nodeName === 'P') {
         // footnotes, endnotes:
         let pid = node.id // calibre v.2 <p id>
         if (!pid) {
           let firstel = node.firstChild // gutenberg <p><a id>
-          if (firstel && firstel.nodeName == 'A') pid = firstel.id
+          if (firstel && firstel.nodeName === 'A') pid = firstel.id
+          log('_PID', docid, 'pid:', pid, md, 'FIRST-N', firstel.nodeName)
         }
         // log('_PID', pid)
         if (fns.includes(pid)) {
@@ -128,7 +139,7 @@ async function getMDs(epub) {
       } // if nodeName
 
       doc.path = path
-      let _id = [chapterid, docid].join('-')
+      let _id = [path, docid].join('-')
       if (!doc._id) doc._id = _id
       doc.md = md
       chapter.push(doc)
@@ -137,8 +148,8 @@ async function getMDs(epub) {
     if (chapter.length) docs.push(chapter), chapter[0].size = chapter.length
     chapterid++
   }
-  log('___DOCS', docs.length)
-  // log('_FNS', fns.slice(0,5))
+  // log('___DOCS', docs.length)
+  log('_FNS', fns.slice(0,15))
   return _.flatten(docs)
 }
 
