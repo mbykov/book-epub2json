@@ -71,11 +71,17 @@ async function getMDs(epub) {
     const dom = new JSDOM(html)
     walk(dom.window.document.body.childNodes, function (node) {
       // log('_NODE:', node.nodeName, node.id)
-      if (!node.textContent) return
+      let md = node.textContent.trim()
+      if (!md) return
       let doc = {_id: ''}
-      let md = node.textContent.slice(0,10).trim()
+      md = node.textContent.slice(0,5).trim() // todo: <<==========
       if (/H\d/.test(node.nodeName)) {
-        if (chapter.length) docs.push(chapter), chapter = [], docid = 0
+        if (chapter.length) {
+          chapter[0].size = chapter.length
+          docs.push(chapter)
+          chapter = []
+          docid = 0
+        }
 
         doc.level = node.nodeName.slice(1)*1
         if (levnumkey[doc.level] > -1) levnumkey[doc.level] += 1
@@ -89,10 +95,8 @@ async function getMDs(epub) {
         }
         prevheader = doc
 
-        md = node.textContent.slice(0,5).trim()
         // md = ['#'.repeat(doc.level), md].join(' ')
       } else if (node.nodeName == 'P') {
-        md = node.textContent.slice(0,5).trim()
         // footnotes, endnotes:
         let pid = node.id // calibre v.2 <p id>
         if (!pid) {
@@ -103,7 +107,6 @@ async function getMDs(epub) {
         if (fns.includes(pid)) {
           doc._id = ['ref', pid].join('-')
           doc.footnote = true
-          doc.md = md
         } else {
           let aels = node.querySelectorAll('a')
           _.each(aels, ael=> {
