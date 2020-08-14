@@ -70,7 +70,7 @@ async function getMDs(epub) {
     let html  = await getChapter(epub, flowchapter.id)
     html = htmlChunk.trim()
     // log('_HTML', flowchapter.id, '====================================\n', flowchapter.id, html)
-    html = html.replace(/\/>/g, '/></a>')
+    html = html.replace(/\/>/g, '/></a>') // jsdom xhtml feature
 
     let docid = 0
     let chapter = []
