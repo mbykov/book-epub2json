@@ -36,23 +36,37 @@ function getEpub(bpath) {
   })
 }
 
-// пока что только tags: h, p, ul, img ???, todo: table
-// что делать с em, bold - линеарными тегами? пока пропустить?
+//
+// todo: turndown!
+// path !! - чтобы можно было alt - left - rught, etc
+// ===== >>> ===== todo: footnotes-ok, осталось доделать: ===== <<<< =====
+// ul, ol; table-tr; images
+// === ну и <divs> в hindus, если их вообще делать
+//
+// == осталась загадка, почему нет ref-linknote-11 в bpath = 'astronomy.epub' ; if (flowchapter.id != 'item11') continue // astronomy
+// а вместо footnote получается обычный параграф - _id: '0-23', href: true, md: '[1:linknoteref-11] For d'
+
+
 async function getMDs(epub) {
   let docs = []
   let fns = []
   let chapterid = 0
+
+  let levnumkey = {}, path = '00' // , counter = 0, filled, match
+  let prevheader = {level: 0}
+  let parent = {level: 0}
+
   for await (let flowchapter of epub.flow) {
-    // log('_HTML', chapter.id)
+    // log('_CH ID:', flowchapter.id)
     // continue
-    // if (flowchapter.id != 'item11') continue // astronomy
+    if (flowchapter.id != 'item5') continue // astronomy
     // if (flowchapter.id != 'c06') continue // hindus
 
     let html  = await getChapter(epub, flowchapter.id)
     // html = htmlChunk.trim()
     // log('_HTML', flowchapter.id, '====================================\n', flowchapter.id, html)
 
-    let parid = 0
+    let docid = 0
     let chapter = []
     const dom = new JSDOM(html)
     walk(dom.window.document.body.childNodes, function (node) {
@@ -61,12 +75,24 @@ async function getMDs(epub) {
       let doc = {_id: ''}
       let md = node.textContent.slice(0,10).trim()
       if (/H\d/.test(node.nodeName)) {
-        if (chapter.length) docs.push(chapter), chapter = []
-        doc.level = node.nodeName[1]
-        md = node.textContent.slice(0,10).trim()
-        md = ['#'.repeat(doc.level), md].join(' ')
+        if (chapter.length) docs.push(chapter), chapter = [], docid = 0
+
+        doc.level = node.nodeName.slice(1)*1
+        if (levnumkey[doc.level] > -1) levnumkey[doc.level] += 1
+        else levnumkey[doc.level] = 0
+        // doc.levnum = levnumkey[doc.level]
+        if (prevheader.level === doc.level) path = [prevheader.path.slice(0,-1), levnumkey[doc.level]].join('')
+        else if (prevheader.level < doc.level) levnumkey[doc.level] = 0, path = [prevheader.path, doc.level, levnumkey[doc.level]].join('')
+        else if (prevheader.level > doc.level) {
+          parent = _.last(_.filter(docs, (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: '00'}
+          path = [parent.path, doc.level, levnumkey[doc.level]].join('')
+        }
+        prevheader = doc
+
+        md = node.textContent.slice(0,5).trim()
+        // md = ['#'.repeat(doc.level), md].join(' ')
       } else if (node.nodeName == 'P') {
-        md = node.textContent.slice(0,10).trim()
+        md = node.textContent.slice(0,5).trim()
         // footnotes, endnotes:
         let pid = node.id // calibre v.2 <p id>
         if (!pid) {
@@ -90,30 +116,25 @@ async function getMDs(epub) {
           })
         }
       } else if (node.nodeName == 'UL') {
-        //
-        // ===== >>> ===== todo: footnotes-ok, осталось доделать: ===== <<<< =====
-        // ul, ol; table-tr; images
-        // === ну и <divs> в hindus, если их вообще делать
-        //
-        // == осталась загадка, почему нет ref-linknote-11 в bpath = 'astronomy.epub' ; if (flowchapter.id != 'item11') continue // astronomy
-        // а вместо footnote получается обычный параграф - _id: '0-23', href: true, md: '[1:linknoteref-11] For d'
         let olines = node.children
         _.each(olines, el=> {
-          //
+          // LIST
         })
       } else {
         return
-      }
-      let _id = [chapterid, parid].join('-')
+      } // if nodeName
+
+      doc.path = path
+      let _id = [chapterid, docid].join('-')
       if (!doc._id) doc._id = _id
       doc.md = md
-      parid++
       chapter.push(doc)
+      docid++
     })
-    if (chapter.length) docs.push(chapter)
+    if (chapter.length) docs.push(chapter), chapter[0].size = chapter.length
     chapterid++
   }
-  log('___DOCS', docs)
+  log('___DOCS', docs.length)
   // log('_FNS', fns.slice(0,5))
   return _.flatten(docs)
 }
@@ -142,4 +163,10 @@ function getChapter(epub, id) {
       resolve(html)
     })
   })
+}
+
+function zerofill(number, size) {
+  number = number.toString()
+  while (number.length < size) number = "0" + number
+  return number
 }

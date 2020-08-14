@@ -38,7 +38,7 @@ async function start(bpath, write) {
   // if (!mds) log('_ERR MESS', descr); return
 
   log('_descr:', descr)
-  log('_docs:', docs.length)
+  log('_docs:', docs)
   log('_imgs', imgs.length)
   // log('_slice', mds.slice(-10))
 
