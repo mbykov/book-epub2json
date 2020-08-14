@@ -54,7 +54,7 @@ async function getMDs(epub) {
 
     let html  = await getChapter(epub, flowchapter.id)
     // html = htmlChunk.trim()
-    // log('_HTML', chapter.id, '====================================\n', chapter.id, html)
+    // log('_HTML', flowchapter.id, '====================================\n', flowchapter.id, html)
 
     let parid = 0
     let chapter = []
@@ -77,6 +77,7 @@ async function getMDs(epub) {
           let firstel = node.firstChild // gutenberg <p><a id>
           if (firstel && firstel.nodeName == 'A') pid = firstel.id
         }
+        log('_PID', pid)
         if (fns.includes(pid)) {
           doc._id = ['ref', pid].join('-')
           doc.footnote = true
@@ -86,14 +87,23 @@ async function getMDs(epub) {
           _.each(aels, ael=> {
             let {fn, noteref} = getNoteRef(ael)
             if (!fn) return
+            log('____NOTEREF', noteref, 'FN', fn)
             md = md.replace(ael.textContent, noteref)
             doc.href = true
             fns.push(fn)
           })
         }
       } else if (node.nodeName == 'UL') {
+        //
+        // ===== >>> ===== todo: footnotes-ok, осталось доделать: ===== <<<< =====
+        // ul, ol; table-tr; images
+        // === ну и <divs> в hindus, если их вообще делать
+        //
+        // == осталась загадка, почему нет ref-linknote-11 в bpath = 'astronomy.epub' ; if (flowchapter.id != 'item11') continue // astronomy
+        // а вместо footnote получается обычный параграф - _id: '0-23', href: true, md: '[1:linknoteref-11] For d'
         let olines = node.children
         _.each(olines, el=> {
+          //
         })
       } else {
         return
@@ -105,70 +115,16 @@ async function getMDs(epub) {
       chapter.push(doc)
     })
     if (chapter.length) docs.push(chapter)
-    log('___DOCS', docs)
-    continue
-
-    const frag = JSDOM.fragment(html)
-    let pars = frag.querySelectorAll('p')
-    _.each(pars, el=> {
-      let _id = [chapterid, parid].join('-')
-      let doc = {_id: _id}
-      let md = el.textContent.trim()
-      if (!md) return
-      // log('_HTML', parid, '====================================\n', chapter.id, html)
-      // if (!/\[76/.test(md)) return
-      // if (!/en388/.test(el.outerHTML)) return
-      // log('_only:', el.outerHTML)
-      log('_CH', el.nodeName, el.id)
-      return
-
-      if (el.nodeName == 'H3') {
-        doc.h3 = true
-        doc.md = md
-        docs.push(doc)
-      } else if (el.nodeName == 'P') {
-        let pid = el.id // calibre v.2 <p id>
-        if (!pid) {
-          let firstel = el.firstChild // gutenberg <p><a id>
-          if (firstel.nodeName == 'A') {
-            pid = firstel.id
-          }
-        }
-        if (fns.includes(pid)) {
-          doc._id = pid
-          doc.footnote = true
-          doc.md = md
-          docs.push(doc)
-          return
-        }
-
-        let aels = el.querySelectorAll('a')
-        _.each(aels, ael=> {
-          let {fn, noteref} = getNoteRef(ael)
-          if (!fn) return
-          md = md.replace(ael.textContent, noteref)
-          doc.href = true
-          fns.push(fn)
-        })
-        doc.md = md
-        docs.push(doc)
-
-      } else if (el.nodeName == 'UL') {
-        let olines = el.children
-        _.each(olines, el=> {
-        })
-      }
-      parid++
-    })
-    // log('_CHs', children.length)
+    // log('___DOCS', docs)
     chapterid++
   }
   log('_FNS', fns.slice(0,5))
   let footnotes = docs.filter(doc=> doc.footnote)
   let hrefs = docs.filter(doc=> doc.href)
-  log('_HREFS', hrefs.slice(0,5))
-  log('_FNS', footnotes.slice(0,5))
+  // log('_HREFS', hrefs.slice(0,5))
+  // log('_FNS', footnotes.slice(0,5))
   // log('_DOCS_____:', docs.slice(0,5))
+  log('_DOCS_____:', docs)
 
   return ['kuku']
 }
