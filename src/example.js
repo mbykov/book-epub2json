@@ -28,7 +28,7 @@ bpath = 'Being_Different.epub'
 bpath = 'astronomy.epub'
 
 // bpath = 'The_Hindus.epub' // FAIL ========= вообще все v.?
-bpath = 'The_Myth_of_Sisyphus.epub'
+// bpath = 'The_Myth_of_Sisyphus.epub'
 
 bpath = path.resolve(__dirname, '../../epub-samples', bpath)
 

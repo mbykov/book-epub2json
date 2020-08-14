@@ -7,6 +7,7 @@ const cheerio = require('cheerio')
 
 const jsdom = require("jsdom")
 const { JSDOM } = jsdom
+const walk = require("dom-walk")
 
 const iso6393 = require('iso-639-3')
 const log = console.log
@@ -44,41 +45,70 @@ async function getMDs(epub) {
   let docs = []
   let fns = []
   let chapterid = 0
-  for await (let chapter of epub.flow) {
+  for await (let flowchapter of epub.flow) {
     // log('_HTML', chapter.id)
     // continue
 
-    // if (chapter.id != 'item11') continue
-    // if (chapter.id != 'c06') continue
+    if (flowchapter.id != 'item11') continue // astronomy
+    // if (flowchapter.id != 'c06') continue // hindus
 
-    let html  = await getChapter(epub, chapter.id)
+    let html  = await getChapter(epub, flowchapter.id)
     // html = htmlChunk.trim()
     // log('_HTML', chapter.id, '====================================\n', chapter.id, html)
 
-    // <i class="calibre3">Jaiminiya Brahmana</i> (c. 600 BCE)<a href="doni_9781101028704_oeb_nts_r1_split_000.html#en388" id="Ref-en388"><sup class="calibre6">2</sup></a>
+    // walk - hasChildren => etc ? <=========================== HERE =======================
+    let parid = 0
+    let chapter = []
+    const dom = new JSDOM(html)
+    walk(dom.window.document.body.childNodes, function (node) {
+      // log('_NODE:', node.nodeName, node.id)
+      if (!node.textContent) return
+      let doc = {_id: ''}
+      if (/H\d/.test(node.nodeName)) {
+        if (chapter.length) docs.push(chapter) //, chapter = []
+        let _id = [chapterid, parid].join('-')
+        doc.level = true
+        doc.md = node.textContent.slice(0,10).trim()
+        chapter.push(doc)
+      } else if (node.nodeName == 'P') {
+        doc.md = node.textContent.slice(0,10).trim()
+        chapter.push(doc)
+      }
+      // chapter.push(doc)
+    })
+    if (chapter.length) docs.push(chapter)
+    log('___DOCS', docs)
+    continue
 
+
+
+    //
+
+    let pars = []
     const frag = JSDOM.fragment(html)
-    // let pars = frag.children
+    pars = frag.children
     // let pars = frag.querySelectorAll('div')
     // log('_PARS', pars.length)
+    // let pars = frag.querySelectorAll('p')
 
-    let pars = frag.querySelectorAll('p')
-    let parid = 0
+    // pars = []
     _.each(pars, el=> {
       let _id = [chapterid, parid].join('-')
       let doc = {_id: _id}
       let md = el.textContent.trim()
       if (!md) return
       // log('_HTML', parid, '====================================\n', chapter.id, html)
-
       // if (!/\[76/.test(md)) return
       // if (!/en388/.test(el.outerHTML)) return
       // log('_only:', el.outerHTML)
-      // log('_CH', el.nodeName, el.id)
+      log('_CH', el.nodeName, el.id)
+      return
 
-      // walk - hasChildren => etc ? <=========================== HERE
-
-      if (el.nodeName == 'P') {
+      if (el.nodeName == 'H3') {
+        doc.h3 = true
+        doc.md = md
+        docs.push(doc)
+      } else if (el.nodeName == 'P') {
         let pid = el.id // calibre v.2 <p id>
         if (!pid) {
           let firstel = el.firstChild // gutenberg <p><a id>
@@ -119,6 +149,7 @@ async function getMDs(epub) {
   let hrefs = docs.filter(doc=> doc.href)
   log('_HREFS', hrefs.slice(0,5))
   log('_FNS', footnotes.slice(0,5))
+  // log('_DOCS_____:', docs.slice(0,5))
 
   return ['kuku']
 }

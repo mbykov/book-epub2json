@@ -28,3 +28,5 @@ export const htmlChunk = `
 
 // file:///tmp/.private/michael/atril-751/The_Myth_of_Sisyphus.epubBHBGP0/OEBPS/Text/Endnote05.xhtml
 // file:///tmp/.private/michael/atril-751/The_Myth_of_Sisyphus.epubBHBGP0/OEBPS/Text/Piece01.Chapter01.xhtml#endnote05
+
+// <i class="calibre3">Jaiminiya Brahmana</i> (c. 600 BCE)<a href="doni_9781101028704_oeb_nts_r1_split_000.html#en388" id="Ref-en388"><sup class="calibre6">2</sup></a>

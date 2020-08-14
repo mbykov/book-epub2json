@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
+    "dom-walk": "^0.1.2",
     "epub": "^1.2.1",
     "iso-639-3": "^2.1.0",
     "jsdom": "^16.4.0",
