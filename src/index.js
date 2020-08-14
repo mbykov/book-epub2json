@@ -56,7 +56,6 @@ async function getMDs(epub) {
     // html = htmlChunk.trim()
     // log('_HTML', chapter.id, '====================================\n', chapter.id, html)
 
-    // walk - hasChildren => etc ? <=========================== HERE =======================
     let parid = 0
     let chapter = []
     const dom = new JSDOM(html)
@@ -64,34 +63,53 @@ async function getMDs(epub) {
       // log('_NODE:', node.nodeName, node.id)
       if (!node.textContent) return
       let doc = {_id: ''}
+      let md = node.textContent.slice(0,10).trim()
       if (/H\d/.test(node.nodeName)) {
-        if (chapter.length) docs.push(chapter) //, chapter = []
-        let _id = [chapterid, parid].join('-')
-        doc.level = true
-        doc.md = node.textContent.slice(0,10).trim()
-        chapter.push(doc)
+        if (chapter.length) docs.push(chapter), chapter = []
+        doc.level = node.nodeName[1]
+        md = node.textContent.slice(0,10).trim()
+        md = ['#'.repeat(doc.level), md].join(' ')
       } else if (node.nodeName == 'P') {
-        doc.md = node.textContent.slice(0,10).trim()
-        chapter.push(doc)
+        md = node.textContent.slice(0,10).trim()
+        // footnotes, endnotes:
+        let pid = node.id // calibre v.2 <p id>
+        if (!pid) {
+          let firstel = node.firstChild // gutenberg <p><a id>
+          if (firstel && firstel.nodeName == 'A') pid = firstel.id
+        }
+        if (fns.includes(pid)) {
+          doc._id = ['ref', pid].join('-')
+          doc.footnote = true
+          doc.md = md
+        } else {
+          let aels = node.querySelectorAll('a')
+          _.each(aels, ael=> {
+            let {fn, noteref} = getNoteRef(ael)
+            if (!fn) return
+            md = md.replace(ael.textContent, noteref)
+            doc.href = true
+            fns.push(fn)
+          })
+        }
+      } else if (node.nodeName == 'UL') {
+        let olines = node.children
+        _.each(olines, el=> {
+        })
+      } else {
+        return
       }
-      // chapter.push(doc)
+      let _id = [chapterid, parid].join('-')
+      if (!doc._id) doc._id = _id
+      doc.md = md
+      parid++
+      chapter.push(doc)
     })
     if (chapter.length) docs.push(chapter)
     log('___DOCS', docs)
     continue
 
-
-
-    //
-
-    let pars = []
     const frag = JSDOM.fragment(html)
-    pars = frag.children
-    // let pars = frag.querySelectorAll('div')
-    // log('_PARS', pars.length)
-    // let pars = frag.querySelectorAll('p')
-
-    // pars = []
+    let pars = frag.querySelectorAll('p')
     _.each(pars, el=> {
       let _id = [chapterid, parid].join('-')
       let doc = {_id: _id}
@@ -123,6 +141,7 @@ async function getMDs(epub) {
           docs.push(doc)
           return
         }
+
         let aels = el.querySelectorAll('a')
         _.each(aels, ael=> {
           let {fn, noteref} = getNoteRef(ael)
