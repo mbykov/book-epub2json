@@ -42,21 +42,21 @@ function getEpub(bpath) {
 }
 
 // https://www.javascriptcookbook.com/article/traversing-dom-subtrees-with-a-recursive-walk-the-dom-function/
-// function walk(node, callback) {
-//   if (callback(node) === false) return false;
-//   node = node.firstChild;
-//   while (node != null) {
-//     if (walk(node, callback) === false) return false;
-//     node = node.nextSibling;
-//   }
-// }
+function walk(node, callback) {
+  if (callback(node) === false) return false;
+  node = node.firstChild;
+  while (node != null) {
+    if (walk(node, callback) === false) return false;
+    node = node.nextSibling;
+  }
+}
 
-// function walk(node, func) {
-//   let children = node.childNodes;
-//   for (let i = 0; i < children.length; i++)  // Children are siblings to each other
-//     walk(children[i], func);
-//   func(node);
-// }
+function walk_(node, func) {
+  let children = node.childNodes;
+  for (let i = 0; i < children.length; i++)  // Children are siblings to each other
+    walk(children[i], func);
+  func(node);
+}
 
 
 async function getMDs(epub) {
@@ -90,10 +90,90 @@ async function getMDs(epub) {
 
     loop(dom.window.document.body)
     function loop(node){
+      // do some thing with the node here
       let nodes = node.childNodes;
+
       nodes.forEach(function(node) {
-        createDoc(node, chapter, docs, docid, levnumkey, prevheader, parent, fns, path)
-      })
+        // createDoc(node, chapter, docs, docid, levnumkey, prevheader, parent, fns, path)
+
+        if (!node.textContent) return
+        let md = node.textContent.trim()
+        md = cleanStr(md)
+        if (!md) return
+        let doc = {_id: '', path: ''}
+
+        // md = md.slice(0, 5) // nb: todo: <<======================================= /////////////////////
+        // log('_N', node.nodeName)
+
+        if (/H\d/.test(node.nodeName)) {
+          if (chapter.length) {
+            chapter[0].size = chapter.length
+            docs.push(chapter)
+            chapter = []
+            docid = 0
+          }
+
+          doc.level = node.nodeName.slice(1)*1
+          if (levnumkey[doc.level] > -1) levnumkey[doc.level] += 1
+          else levnumkey[doc.level] = 0
+          // doc.levnum = levnumkey[doc.level]
+          if (prevheader.level === doc.level) path = [prevheader.path.slice(0,-1), levnumkey[doc.level]].join('')
+          else if (prevheader.level < doc.level) path = [prevheader.path, doc.level, levnumkey[doc.level]].join('') // levnumkey[doc.level] = 0,
+          else if (prevheader.level > doc.level) {
+            parent = _.last(_.filter(_.flatten(docs), (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: _.flatten(docs)[0].path}
+            path = [parent.path, doc.level, levnumkey[doc.level]].join('')
+          }
+          prevheader = doc
+          md = md.replace(/\.$/, '')
+
+          // md = ['#'.repeat(doc.level), md].join(' ')
+        } else if (node.nodeName === 'DIV') {
+          // log('____DIV', md)
+          return
+        } else if (node.nodeName === 'P') {
+          // footnotes, endnotes:
+          let pid = node.id // calibre v.2 <p id>
+          if (!pid) {
+            let firstel = node.firstChild // gutenberg <p><a id>
+            if (firstel && firstel.nodeName === 'A') pid = firstel.id
+            // log('_PID', docid, 'pid:', pid, md, 'FIRST-N', firstel.nodeName)
+          }
+          // log('_PID', pid)
+          if (fns.includes(pid)) {
+            doc._id = ['ref', pid].join('-')
+            doc.footnote = true
+          } else {
+            // let aels = node.querySelectorAll('a')
+            let aels = _.filter(node.childNodes, node=> node.nodeName == 'A')
+            _.each(aels, ael=> {
+              let {refnote, notepath} = getRefnote(ael)
+              if (!notepath) return
+              // log('____REFNOTE', refnote, 'NotePath', notepath)
+              // md = md.replace(ael.textContent, refnote)
+              // doc.refnote = true
+              if (!doc.notes) doc.refnotes = []
+              let docnote = {}
+              docnote[refnote] = notepath
+              doc.refnotes.push(docnote)
+              fns.push(notepath)
+            })
+          }
+        } else if (node.nodeName == 'UL') {
+          let olines = node.children
+          _.each(olines, el=> {
+            // LIST
+          })
+        } else {
+          return
+        } // if nodeName
+
+        doc.path = path
+        let _id = [path, docid].join('-')
+        if (!doc._id) doc._id = _id
+        doc.md = md
+        chapter.push(doc)
+        docid++
+      }) // each node
 
       for (let i = 0; i <nodes.length; i++) {
         if(!nodes[i]) continue
@@ -103,99 +183,99 @@ async function getMDs(epub) {
       }
     } // loop
 
+    // walk(dom.window.document.body, function (node) {
+    //   if (!node.textContent) return
+    //   let md = node.textContent.trim()
+    //   if (!md) return
+    //   md = cleanStr(md)
+    //   let doc = {_id: '', path: ''}
+    //   md = md.slice(0, 5) // nb: todo: <<===========================
+    //   // log('_N', node.nodeName)
+
+    //   if (/H\d/.test(node.nodeName)) {
+    //     if (chapter.length) {
+    //       chapter[0].size = chapter.length
+    //       docs.push(chapter)
+    //       chapter = []
+    //       docid = 0
+    //     }
+
+    //     doc.level = node.nodeName.slice(1)*1
+    //     if (levnumkey[doc.level] > -1) levnumkey[doc.level] += 1
+    //     else levnumkey[doc.level] = 0
+    //     // doc.levnum = levnumkey[doc.level]
+    //     if (prevheader.level === doc.level) path = [prevheader.path.slice(0,-1), levnumkey[doc.level]].join('')
+    //     else if (prevheader.level < doc.level) path = [prevheader.path, doc.level, levnumkey[doc.level]].join('') // levnumkey[doc.level] = 0,
+    //     else if (prevheader.level > doc.level) {
+    //       parent = _.last(_.filter(_.flatten(docs), (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: _.flatten(docs)[0].path}
+    //       path = [parent.path, doc.level, levnumkey[doc.level]].join('')
+    //     }
+    //     prevheader = doc
+    //     md = md.replace(/\.$/, '')
+
+    //     // md = ['#'.repeat(doc.level), md].join(' ')
+    //   } else if (node.nodeName === 'DIV') {
+    //     // log('____DIV', md)
+    //     return
+    //   } else if (node.nodeName === 'P') {
+    //     // footnotes, endnotes:
+    //     let pid = node.id // calibre v.2 <p id>
+    //     if (!pid) {
+    //       let firstel = node.firstChild // gutenberg <p><a id>
+    //       if (firstel && firstel.nodeName === 'A') pid = firstel.id
+    //       // log('_PID', docid, 'pid:', pid, md, 'FIRST-N', firstel.nodeName)
+    //     }
+    //     // log('_PID', pid)
+    //     if (fns.includes(pid)) {
+    //       doc._id = ['ref', pid].join('-')
+    //       doc.footnote = true
+    //     } else {
+    //       let aels = node.querySelectorAll('a')
+    //       _.each(aels, ael=> {
+    //         let {refnote, notepath} = getRefnote(ael)
+    //         if (!fn) return
+    //         // log('____REFNOTE', refnote, 'FN', fn)
+    //         md = md.replace(ael.textContent, refnote)
+    //         doc.href = true
+    //         fns.push(fn)
+    //       })
+    //     }
+    //   } else if (node.nodeName == 'UL') {
+    //     let olines = node.children
+    //     _.each(olines, el=> {
+    //       // LIST
+    //     })
+    //   } else {
+    //     return
+    //   } // if nodeName
+
+    //   doc.path = path
+    //   let _id = [path, docid].join('-')
+    //   if (!doc._id) doc._id = _id
+    //   doc.md = md
+    //   chapter.push(doc)
+    //   docid++
+    // }) // walk
+
     if (chapter.length) docs.push(chapter), chapter[0].size = chapter.length
     chapterid++
   }
+  // log('___DOCS', docs.length)
   // log('_FNS', fns.slice(0,15))
   return _.flatten(docs)
 }
 
-function createDoc(node, chapter, docs, docid, levnumkey, prevheader, parent, fns, path) {
-  if (!node.textContent) return
-  let md = node.textContent.trim()
-  if (!md) return
-  md = cleanStr(md)
-  let doc = {_id: '', path: ''}
-  // md = md.slice(0, 5) // nb: todo: <<===========================
-  // log('_N', node.nodeName)
-
-  if (/H\d/.test(node.nodeName)) {
-    if (chapter.length) {
-      chapter[0].size = chapter.length
-      docs.push(chapter)
-      chapter = []
-      docid = 0
-    }
-
-    doc.level = node.nodeName.slice(1)*1
-    if (levnumkey[doc.level] > -1) levnumkey[doc.level] += 1
-    else levnumkey[doc.level] = 0
-    // doc.levnum = levnumkey[doc.level]
-    if (prevheader.level === doc.level) path = [prevheader.path.slice(0,-1), levnumkey[doc.level]].join('')
-    else if (prevheader.level < doc.level) path = [prevheader.path, doc.level, levnumkey[doc.level]].join('') // levnumkey[doc.level] = 0,
-    else if (prevheader.level > doc.level) {
-      parent = _.last(_.filter(_.flatten(docs), (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: _.flatten(docs)[0].path}
-      path = [parent.path, doc.level, levnumkey[doc.level]].join('')
-    }
-    prevheader = doc
-    md = md.replace(/\.$/, '')
-
-    // md = ['#'.repeat(doc.level), md].join(' ')
-  } else if (node.nodeName === 'DIV') {
-    // log('____DIV', md)
-    return
-  } else if (node.nodeName === 'P') {
-    // footnotes, endnotes:
-    let pid = node.id // calibre v.2 <p id>
-    if (!pid) {
-      let firstel = node.firstChild // gutenberg <p><a id>
-      if (firstel && firstel.nodeName === 'A') pid = firstel.id
-      // log('_PID', docid, 'pid:', pid, md, 'FIRST-N', firstel.nodeName)
-    }
-    // log('_PID', pid)
-    if (fns.includes(pid)) {
-      doc._id = ['ref', pid].join('-')
-      doc.footnote = true
-    } else {
-      // let aels = node.querySelectorAll('a') // security violention!
-      let aels = _.filter(node.childNodes, anode=> anode.nodeName == 'A')
-      _.each(aels, ael=> {
-        let {fn, noteref} = getNoteRef(ael)
-        if (!fn) return
-        // log('____NOTEREF', noteref, 'FN', fn)
-        md = md.replace(ael.textContent, noteref)
-        doc.href = true
-        fns.push(fn)
-      })
-    }
-  } else if (node.nodeName == 'UL') {
-    let olines = node.children
-    _.each(olines, el=> {
-      // LIST
-    })
-  } else {
-    return
-  } // if nodeName
-
-  doc.path = path
-  let _id = [path, docid].join('-')
-  if (!doc._id) doc._id = _id
-  doc.md = md
-  chapter.push(doc)
-  docid++
-}
-
-// noteref:chid-fn
-function getNoteRef(ael) {
-  let fn = ael.getAttribute('href')
-  if (!fn) return {fn: null}
-  fn = fn.split('#')[1]
-  let noteref = ael.textContent.replace(/\[/g, '').replace(/\]/g, '')
-  noteref = ['[', noteref, ':', fn, ']'].join('')
+// refnote:chid-fn
+function getRefnote(ael) {
+  let notepath = ael.getAttribute('href')
+  if (!notepath) return {fn: null}
+  notepath = notepath.split('#')[1]
+  let refnote = ael.textContent.replace(/\[/g, '').replace(/\]/g, '')
+  // refnote = ['[', refnote, ':', notepath, ']'].join('')
   // log('_A:', ael.outerHTML, '_FN:', fn)
   // log('_Z', ael.textContent)
-  // log('_REF', noteref)
-  return {fn, noteref}
+  // log('_REF', refnote)
+  return {refnote, notepath}
 }
 
 function q(html, selector) {

@@ -43,22 +43,21 @@ async function start(bpath, write) {
   // log('_slice', mds.slice(-10))
 
   let fns = docs.filter(doc=> doc.footnote)
-  let hrefs = docs.filter(doc=> doc.href)
-  log('_fns', fns.length)
-  log('_hrefs', hrefs.length)
+  let refs = docs.filter(doc=> doc.refnotes)
+  log('_fns:', fns.slice(0,3))
+  log('_refs:', refs.slice(0,3))
 
-  docs = docs.slice(10, 20)
+  // docs = docs.slice(10, 20)
   docs.forEach(doc=> {
-    // if (doc.level)
-    // log('_d:', doc)
+    // if (doc.level) log('_d:', doc)
   })
 
-  if (write) {
-    log('___WRITING', bpath)
-    // writeFiles(bpath, descr, mds)
-  } else {
-    return {descr, docs, imgs}
-  }
+  // if (write) {
+  //   log('___WRITING', bpath)
+  //   // writeFiles(bpath, descr, mds)
+  // } else {
+  //   return {descr, docs, imgs}
+  // }
 }
 
 start(bpath)
