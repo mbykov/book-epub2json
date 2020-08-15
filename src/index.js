@@ -49,11 +49,11 @@ function getEpub(bpath) {
 async function getMDs(epub) {
   let docs = []
   let fns = []
-  let chapterid = 0
 
-  let levnumkey = {}, path = '00' // , counter = 0, filled, match
-  let prevheader = {level: 0}
-  let parent = {level: 0}
+  // let chapterid = 0
+  // let levnumkey = {}, path = '00' // , counter = 0, filled, match
+  // let prevheader = {level: 0}
+  // let parent = {level: 0}
 
   for await (let flowchapter of epub.flow) {
     // log('_CH ID:', flowchapter.id)
@@ -84,34 +84,10 @@ async function getMDs(epub) {
         if (!md) return
         let doc = {_id: '', path: ''}
 
-        // md = md.slice(0, 5) // nb: todo: <<======================================= /////////////////////
         // log('_N', node.nodeName)
-
         if (/H\d/.test(node.nodeName)) {
-          if (chapter.length) {
-            // let header = docs.find(doc=> doc.level > -1)
-            // if (!header) header = chapter[0], header.level = 0
-            // header.size = chapter.length
-            // header.chapter = flowchapter.id
-            // // log('___HEADER_1', header)
-            // docs.push(chapter)
-            // chapter = []
-            // docid = 0
-          }
-
           doc.level = node.nodeName.slice(1)*1
-          if (levnumkey[doc.level] > -1) levnumkey[doc.level] += 1
-          else levnumkey[doc.level] = 0
-          // doc.levnum = levnumkey[doc.level]
-          if (prevheader.level === doc.level) path = [prevheader.path.slice(0,-1), levnumkey[doc.level]].join('')
-          else if (prevheader.level < doc.level) path = [prevheader.path, doc.level, levnumkey[doc.level]].join('') // levnumkey[doc.level] = 0,
-          else if (prevheader.level > doc.level) {
-            parent = _.last(_.filter(_.flatten(docs), (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: _.flatten(docs)[0].path}
-            path = [parent.path, doc.level, levnumkey[doc.level]].join('')
-          }
-          prevheader = doc
           md = md.replace(/\.$/, '')
-
           // md = ['#'.repeat(doc.level), md].join(' ')
         } else if (node.nodeName === 'DIV') {
           // log('____DIV', md)
@@ -146,15 +122,8 @@ async function getMDs(epub) {
           return
         } // if nodeName
 
-        // doc.path = path
-        // let _id = [path, docid].join('-')
-        // if (!doc._id) doc._id = _id
-
         doc.md = md
-        // chapter.push(doc)
         docs.push(doc)
-        docid++
-        prevheader.size = docid
       }) // each node
 
       for (let i = 0; i <nodes.length; i++) {
@@ -165,17 +134,6 @@ async function getMDs(epub) {
       }
     } // loop
 
-
-
-    // if (chapter.length) {
-    //   let header = docs.find(doc=> doc.level > -1)
-    //   if (!header) header = chapter[0], header.level = 0
-    //   header.size = chapter.length
-    //   header.chapter = flowchapter.id
-    //   // log('___HEADER_2', header)
-    //   docs.push(chapter)
-    // }
-    chapterid++
   }
   let header = docs.find(doc=> doc.level > -1)
   if (!header) header = docs[0], header.level = 1
@@ -248,5 +206,4 @@ function structuredDocs(docs) {
     prevheader.size = counter
     baredocs.push(doc)
   }
-  // return baredocs // только для вычисления parent - будет переписано
 }
