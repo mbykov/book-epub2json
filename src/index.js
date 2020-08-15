@@ -41,17 +41,6 @@ function getEpub(bpath) {
   })
 }
 
-//
-// todo: turndown!
-// path !! - чтобы можно было alt - left - rught, etc
-// ===== >>> ===== todo: footnotes-ok, осталось доделать: ===== <<<< =====
-// ul, ol; table-tr; images
-// === ну и <divs> в hindus, если их вообще делать
-//
-// == осталась загадка, почему нет ref-linknote-11 в bpath = 'astronomy.epub' ; if (flowchapter.id != 'item11') continue // astronomy
-// а вместо footnote получается обычный параграф - _id: '0-23', href: true, md: '[1:linknoteref-11] For d'
-
-
 async function getMDs(epub) {
   let docs = []
   let fns = []
@@ -62,14 +51,17 @@ async function getMDs(epub) {
   let parent = {level: 0}
 
   for await (let flowchapter of epub.flow) {
+
     // log('_CH ID:', flowchapter.id)
     // continue
-    if (flowchapter.id != 'item11') continue // astronomy
+    // if (flowchapter.id != 'item11') continue // astronomy
     // if (flowchapter.id != 'c06') continue // hindus
 
     let html  = await getChapter(epub, flowchapter.id)
-    html = htmlChunk.trim()
+
+    // html = htmlChunk.trim()
     // log('_HTML', flowchapter.id, '====================================\n', flowchapter.id, html)
+
     html = html.replace(/\/>/g, '/></a>') // jsdom xhtml feature
 
     let docid = 0
@@ -81,7 +73,7 @@ async function getMDs(epub) {
       let md = node.textContent.trim()
       if (!md) return
       let doc = {_id: '', path: ''}
-      md = md.slice(0,6) // nb: todo: <<==========
+      // md = md.slice(0, 5) // nb: todo: <<==========
       if (/H\d/.test(node.nodeName)) {
         if (chapter.length) {
           chapter[0].size = chapter.length
@@ -112,7 +104,7 @@ async function getMDs(epub) {
         if (!pid) {
           let firstel = node.firstChild // gutenberg <p><a id>
           if (firstel && firstel.nodeName === 'A') pid = firstel.id
-          log('_PID', docid, 'pid:', pid, md, 'FIRST-N', firstel.nodeName)
+          // log('_PID', docid, 'pid:', pid, md, 'FIRST-N', firstel.nodeName)
         }
         // log('_PID', pid)
         if (fns.includes(pid)) {
@@ -149,7 +141,7 @@ async function getMDs(epub) {
     chapterid++
   }
   // log('___DOCS', docs.length)
-  log('_FNS', fns.slice(0,15))
+  // log('_FNS', fns.slice(0,15))
   return _.flatten(docs)
 }
 
