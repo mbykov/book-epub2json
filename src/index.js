@@ -21,7 +21,7 @@ export async function epub2json(bpath) {
   try {
     docs = await getMDs(epub)
   } catch(err) {
-    log('____IMPORT ERR', err)
+    log('____EPUB IMPORT ERR', err)
     docs = []
   }
   // log('_META', epub.toc)
@@ -50,7 +50,6 @@ async function getMDs(epub) {
   let parent = {level: 0}
 
   for await (let flowchapter of epub.flow) {
-
     // log('_CH ID:', flowchapter.id)
     // continue
     // if (flowchapter.id != 'item11') continue // astronomy
@@ -60,7 +59,6 @@ async function getMDs(epub) {
 
     // html = htmlChunk.trim()
     // log('_HTML', flowchapter.id, '====================================\n', flowchapter.id, html)
-
     html = html.replace(/\/>/g, '/></a>') // jsdom xhtml feature
 
     let docid = 0
@@ -71,12 +69,9 @@ async function getMDs(epub) {
 
     loop(dom.window.document.body)
     function loop(node){
-      // do some thing with the node here
       let nodes = node.childNodes;
 
       nodes.forEach(function(node) {
-        // createDoc(node, chapter, docs, docid, levnumkey, prevheader, parent, fns, path)
-
         if (!node.textContent) return
         let md = node.textContent.trim()
         md = cleanStr(md)
@@ -117,9 +112,7 @@ async function getMDs(epub) {
           if (!pid) {
             let firstel = node.firstChild // gutenberg <p><a id>
             if (firstel && firstel.nodeName === 'A') pid = firstel.id
-            // log('_PID', docid, 'pid:', pid, md, 'FIRST-N', firstel.nodeName)
           }
-          // log('_PID', pid)
           if (fns.includes(pid)) {
             doc._id = ['ref', pid].join('-')
             doc.footnote = true
@@ -129,13 +122,8 @@ async function getMDs(epub) {
             _.each(aels, ael=> {
               let {refnote, notepath} = getRefnote(ael)
               if (!notepath) return
-              // log('____REFNOTE', refnote, 'NotePath', notepath)
-              // md = md.replace(ael.textContent, refnote)
-              // doc.refnote = true
-              if (!doc.notes) doc.refnotes = []
-              let docnote = {}
-              docnote[refnote] = notepath
-              doc.refnotes.push(docnote)
+              if (!doc.refnotes) doc.refnotes = {}
+              doc.refnotes[refnote] = notepath
               fns.push(notepath)
             })
           }
@@ -171,7 +159,6 @@ async function getMDs(epub) {
   return _.flatten(docs)
 }
 
-// refnote:chid-fn
 function getRefnote(ael) {
   let notepath = ael.getAttribute('href')
   if (!notepath) return {refnote: null}
