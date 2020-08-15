@@ -24,6 +24,12 @@ export async function epub2json(bpath) {
     log('____EPUB IMPORT ERR', err)
     docs = []
   }
+
+  // let  author = {_id: '0-0', md: descr.author}
+  // let  title = {_id: '0-1', md: descr.title, level: 0}
+  // docs.unshift(title)
+  // docs.unshift(author)
+
   // log('_META', epub.toc)
   log('_EPUB-docs', docs.length)
   return {descr, docs, imgs: []}
@@ -83,10 +89,14 @@ async function getMDs(epub) {
 
         if (/H\d/.test(node.nodeName)) {
           if (chapter.length) {
-            chapter[0].size = chapter.length
-            docs.push(chapter)
-            chapter = []
-            docid = 0
+            // let header = docs.find(doc=> doc.level > -1)
+            // if (!header) header = chapter[0], header.level = 0
+            // header.size = chapter.length
+            // header.chapter = flowchapter.id
+            // // log('___HEADER_1', header)
+            // docs.push(chapter)
+            // chapter = []
+            // docid = 0
           }
 
           doc.level = node.nodeName.slice(1)*1
@@ -117,7 +127,7 @@ async function getMDs(epub) {
             doc._id = ['ref', pid].join('-')
             doc.footnote = true
           } else {
-            // let aels = node.querySelectorAll('a')
+            // let aels = node.querySelectorAll('a') // electron security violation
             let aels = _.filter(node.childNodes, node=> node.nodeName == 'A')
             _.each(aels, ael=> {
               let {refnote, notepath} = getRefnote(ael)
@@ -136,12 +146,15 @@ async function getMDs(epub) {
           return
         } // if nodeName
 
-        doc.path = path
-        let _id = [path, docid].join('-')
-        if (!doc._id) doc._id = _id
+        // doc.path = path
+        // let _id = [path, docid].join('-')
+        // if (!doc._id) doc._id = _id
+
         doc.md = md
-        chapter.push(doc)
+        // chapter.push(doc)
+        docs.push(doc)
         docid++
+        prevheader.size = docid
       }) // each node
 
       for (let i = 0; i <nodes.length; i++) {
@@ -152,10 +165,23 @@ async function getMDs(epub) {
       }
     } // loop
 
-    if (chapter.length) docs.push(chapter), chapter[0].size = chapter.length
+
+
+    // if (chapter.length) {
+    //   let header = docs.find(doc=> doc.level > -1)
+    //   if (!header) header = chapter[0], header.level = 0
+    //   header.size = chapter.length
+    //   header.chapter = flowchapter.id
+    //   // log('___HEADER_2', header)
+    //   docs.push(chapter)
+    // }
     chapterid++
   }
+  let header = docs.find(doc=> doc.level > -1)
+  if (!header) header = docs[0], header.level = 1
   // log('_FNS', fns.slice(0,15))
+  // log('_DDDD', docs)
+  structuredDocs(docs)
   return _.flatten(docs)
 }
 
@@ -189,4 +215,38 @@ function zerofill(number, size) {
 
 function cleanStr(str) {
   return str.replace(/\n+/g, '\n').replace(/↵+/, '\n').replace(/  +/, ' ') // .replace(/\s+/, ' ')
+}
+
+function structuredDocs(docs) {
+  const fillsize = docs.length.toString().length
+  let baredocs = []
+  let level = 0, levnumkey = {}, path = '00', counter = 0, filled, headstart = -1
+  let prevheader = {level: 0, path: '00'}
+  let parent = {level: 0, path: ''}
+  for (let doc of docs) {
+    if (doc.level > -1) {
+      level = doc.level
+      counter = 0
+      if (levnumkey[level] > -1) levnumkey[level] += 1
+      else levnumkey[level] = 0
+      doc.levnum = levnumkey[level] || 0
+
+      if (prevheader.level === level) path = [prevheader.path.slice(0,-1), levnumkey[level]].join('')
+      else if (prevheader.level < level) levnumkey[level] = 0, path = [prevheader.path, level, levnumkey[level]].join('')
+      else if (prevheader.level > level) {
+        parent = _.last(_.filter(baredocs, (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: '00'}
+        path = [parent.path, level, levnumkey[level]].join('')
+      }
+      prevheader = doc
+    }
+
+    doc.path = path
+    filled = zerofill(counter, fillsize)
+    if (!doc._id) doc._id = [path, filled].join('-')
+
+    counter++
+    prevheader.size = counter
+    baredocs.push(doc)
+  }
+  // return baredocs // только для вычисления parent - будет переписано
 }

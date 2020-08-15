@@ -26,6 +26,7 @@ bpath = path.resolve(__dirname, '../test', bpath)
 bpath = 'Popular-scientific-lectures.epub'
 bpath = 'Being_Different.epub'
 bpath = 'astronomy.epub'
+bpath = 'Braginskaya.epub'
 
 // bpath = 'The_Hindus.epub' // FAIL ========= вообще все v.?
 // bpath = 'The_Myth_of_Sisyphus.epub'
@@ -44,12 +45,12 @@ async function start(bpath, write) {
 
   let fns = docs.filter(doc=> doc.footnote)
   let refs = docs.filter(doc=> doc.refnotes)
-  log('_fns:', fns.slice(0,3))
-  log('_refs:', refs.slice(0,3))
+  log('_fns:', fns.length)
+  log('_refs:', refs.length)
 
-  // docs = docs.slice(10, 20)
+  // docs = docs.slice(0, 20)
   docs.forEach(doc=> {
-    // if (doc.level) log('_d:', doc)
+    if (doc.level > -1) log('_d:', doc)
   })
 
   // if (write) {
