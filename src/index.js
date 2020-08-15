@@ -5,7 +5,6 @@ import EPub from 'epub'
 
 const jsdom = require("jsdom")
 const { JSDOM } = jsdom
-// const walk = require("dom-walk")
 
 const iso6393 = require('iso-639-3')
 const log = console.log
@@ -40,24 +39,6 @@ function getEpub(bpath) {
     epub.parse()
   })
 }
-
-// https://www.javascriptcookbook.com/article/traversing-dom-subtrees-with-a-recursive-walk-the-dom-function/
-function walk(node, callback) {
-  if (callback(node) === false) return false;
-  node = node.firstChild;
-  while (node != null) {
-    if (walk(node, callback) === false) return false;
-    node = node.nextSibling;
-  }
-}
-
-function walk_(node, func) {
-  let children = node.childNodes;
-  for (let i = 0; i < children.length; i++)  // Children are siblings to each other
-    walk(children[i], func);
-  func(node);
-}
-
 
 async function getMDs(epub) {
   let docs = []
@@ -183,84 +164,9 @@ async function getMDs(epub) {
       }
     } // loop
 
-    // walk(dom.window.document.body, function (node) {
-    //   if (!node.textContent) return
-    //   let md = node.textContent.trim()
-    //   if (!md) return
-    //   md = cleanStr(md)
-    //   let doc = {_id: '', path: ''}
-    //   md = md.slice(0, 5) // nb: todo: <<===========================
-    //   // log('_N', node.nodeName)
-
-    //   if (/H\d/.test(node.nodeName)) {
-    //     if (chapter.length) {
-    //       chapter[0].size = chapter.length
-    //       docs.push(chapter)
-    //       chapter = []
-    //       docid = 0
-    //     }
-
-    //     doc.level = node.nodeName.slice(1)*1
-    //     if (levnumkey[doc.level] > -1) levnumkey[doc.level] += 1
-    //     else levnumkey[doc.level] = 0
-    //     // doc.levnum = levnumkey[doc.level]
-    //     if (prevheader.level === doc.level) path = [prevheader.path.slice(0,-1), levnumkey[doc.level]].join('')
-    //     else if (prevheader.level < doc.level) path = [prevheader.path, doc.level, levnumkey[doc.level]].join('') // levnumkey[doc.level] = 0,
-    //     else if (prevheader.level > doc.level) {
-    //       parent = _.last(_.filter(_.flatten(docs), (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: _.flatten(docs)[0].path}
-    //       path = [parent.path, doc.level, levnumkey[doc.level]].join('')
-    //     }
-    //     prevheader = doc
-    //     md = md.replace(/\.$/, '')
-
-    //     // md = ['#'.repeat(doc.level), md].join(' ')
-    //   } else if (node.nodeName === 'DIV') {
-    //     // log('____DIV', md)
-    //     return
-    //   } else if (node.nodeName === 'P') {
-    //     // footnotes, endnotes:
-    //     let pid = node.id // calibre v.2 <p id>
-    //     if (!pid) {
-    //       let firstel = node.firstChild // gutenberg <p><a id>
-    //       if (firstel && firstel.nodeName === 'A') pid = firstel.id
-    //       // log('_PID', docid, 'pid:', pid, md, 'FIRST-N', firstel.nodeName)
-    //     }
-    //     // log('_PID', pid)
-    //     if (fns.includes(pid)) {
-    //       doc._id = ['ref', pid].join('-')
-    //       doc.footnote = true
-    //     } else {
-    //       let aels = node.querySelectorAll('a')
-    //       _.each(aels, ael=> {
-    //         let {refnote, notepath} = getRefnote(ael)
-    //         if (!fn) return
-    //         // log('____REFNOTE', refnote, 'FN', fn)
-    //         md = md.replace(ael.textContent, refnote)
-    //         doc.href = true
-    //         fns.push(fn)
-    //       })
-    //     }
-    //   } else if (node.nodeName == 'UL') {
-    //     let olines = node.children
-    //     _.each(olines, el=> {
-    //       // LIST
-    //     })
-    //   } else {
-    //     return
-    //   } // if nodeName
-
-    //   doc.path = path
-    //   let _id = [path, docid].join('-')
-    //   if (!doc._id) doc._id = _id
-    //   doc.md = md
-    //   chapter.push(doc)
-    //   docid++
-    // }) // walk
-
     if (chapter.length) docs.push(chapter), chapter[0].size = chapter.length
     chapterid++
   }
-  // log('___DOCS', docs.length)
   // log('_FNS', fns.slice(0,15))
   return _.flatten(docs)
 }
@@ -268,13 +174,10 @@ async function getMDs(epub) {
 // refnote:chid-fn
 function getRefnote(ael) {
   let notepath = ael.getAttribute('href')
-  if (!notepath) return {fn: null}
+  if (!notepath) return {refnote: null}
   notepath = notepath.split('#')[1]
   let refnote = ael.textContent.replace(/\[/g, '').replace(/\]/g, '')
-  // refnote = ['[', refnote, ':', notepath, ']'].join('')
-  // log('_A:', ael.outerHTML, '_FN:', fn)
-  // log('_Z', ael.textContent)
-  // log('_REF', refnote)
+  if (refnote.length > 3) return {refnote: null} // not footnotes
   return {refnote, notepath}
 }
 
