@@ -1,6 +1,6 @@
 'use strict'
 
-import { epub2md } from "./index";
+import { epub2json } from "./index";
 const log = console.log
 const path = require("path")
 
@@ -33,8 +33,8 @@ bpath = 'astronomy.epub'
 bpath = path.resolve(__dirname, '../../epub-samples', bpath)
 
 async function start(bpath, write) {
-  log('_epub2md-bpath_', bpath)
-  let {descr, docs, imgs} = await epub2md(bpath)
+  log('_epub2json-bpath_', bpath)
+  let {descr, docs, imgs} = await epub2json(bpath)
   // if (!mds) log('_ERR MESS', descr); return
 
   log('_descr:', descr)
@@ -42,9 +42,15 @@ async function start(bpath, write) {
   log('_imgs', imgs.length)
   // log('_slice', mds.slice(-10))
 
-  // docs = docs.slice(0,5)
+  let fns = docs.filter(doc=> doc.footnote)
+  let hrefs = docs.filter(doc=> doc.href)
+  log('_fns', fns.length)
+  log('_hrefs', hrefs.length)
+
+  docs = docs.slice(10, 20)
   docs.forEach(doc=> {
-    if (doc.level) log('_title:', doc)
+    // if (doc.level)
+    // log('_d:', doc)
   })
 
   if (write) {

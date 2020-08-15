@@ -1,10 +1,10 @@
 {
-  "name": "xdxf",
+  "name": "epub2json",
   "version": "1.0.0",
-  "main": "dist/example.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "babel src -d dist",
-    "start": "npm run build && node ."
+    "start": "npm run build && node ./dist/example.js"
   },
   "license": "MIT",
   "devDependencies": {
@@ -15,7 +15,6 @@
     "@babel/runtime": "^7.11.2"
   },
   "dependencies": {
-    "cheerio": "^1.0.0-rc.3",
     "dom-walk": "^0.1.2",
     "epub": "^1.2.1",
     "iso-639-3": "^2.1.0",
