@@ -108,8 +108,8 @@ async function getMDs(epub) {
             _.each(aels, ael=> {
               let {refnote, notepath} = getRefnote(ael)
               if (!notepath) return
-              if (!doc.refnotes) doc.refnotes = {}
-              doc.refnotes[refnote] = notepath
+              if (!doc.refnote) doc.refnote = {}
+              doc.refnote[refnote] = ['ref', notepath].join('-')
               fns.push(notepath)
             })
           }

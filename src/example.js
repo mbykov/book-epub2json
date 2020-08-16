@@ -48,7 +48,7 @@ async function start(bpath, write) {
   log('_imgs', imgs.length)
 
   let fns = docs.filter(doc=> doc.footnote)
-  let refs = docs.filter(doc=> doc.refnotes)
+  let refs = docs.filter(doc=> doc.refnote)
   log('_fns:', fns.length)
   log('_refs:', refs.length)
 
