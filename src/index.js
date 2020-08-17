@@ -68,7 +68,7 @@ async function getMDs(epub) {
     html = html.replace(/\/>/g, '/></a>') // jsdom xhtml feature
 
     let docid = 0
-    let chapter = []
+    // let chapter = []
     const dom = new JSDOM(html)
     // dom = new JSDOM(html, {contentType: "application/xhtml+xml"})
     // dom = new JSDOM(html, {contentType: "text/html"})
@@ -139,7 +139,7 @@ async function getMDs(epub) {
   if (!header) header = docs[0], header.level = 1
   // log('_FNS', fns.slice(0,15))
   // log('_DDDD', docs)
-  structuredDocs(docs)
+  // structuredDocs(docs)
   return _.flatten(docs)
 }
 
