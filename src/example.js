@@ -50,7 +50,15 @@ async function start(bpath, write) {
   let fns = docs.filter(doc=> doc.footnote)
   let refs = docs.filter(doc=> doc.refnote)
   log('_fns:', fns.length)
+  refs = refs.slice(0,2)
   log('_refs:', refs.length)
+
+  let tmps = refs.slice(0,2)
+  tmps.forEach(doc=> {
+    // if (doc.level) log('_title:', doc)
+    log('_d', doc)
+  })
+
 
   // if (write) {
   //   log('___WRITING', bpath)

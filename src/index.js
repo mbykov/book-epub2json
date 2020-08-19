@@ -109,7 +109,8 @@ async function getMDs(epub) {
               let {refnote, notepath} = getRefnote(ael)
               if (!notepath) return
               if (!doc.refnote) doc.refnote = {}
-              doc.refnote[refnote] = ['ref', notepath].join('-')
+              // doc.refnote[refnote] = ['ref', notepath].join('-')
+              doc.refnote[refnote] = notepath
               fns.push(notepath)
             })
           }
@@ -133,13 +134,9 @@ async function getMDs(epub) {
         }
       }
     } // loop
-
   }
   let header = docs.find(doc=> doc.level > -1)
   if (!header) header = docs[0], header.level = 1
-  // log('_FNS', fns.slice(0,15))
-  // log('_DDDD', docs)
-  // structuredDocs(docs)
   return _.flatten(docs)
 }
 
@@ -147,7 +144,9 @@ function getRefnote(ael) {
   let notepath = ael.getAttribute('href')
   if (!notepath) return {refnote: null}
   notepath = notepath.split('#')[1]
-  let refnote = ael.textContent.replace(/\[/g, '').replace(/\]/g, '')
+  if (!notepath) return {refnote: null}
+  notepath = notepath.replace(/ref-/g, '')
+  let refnote = ael.textContent.replace(/\[/g, '').replace(/\]/g, '').replace(/ref-/g, '')
   if (refnote.length > 3) return {refnote: null} // not footnotes
   return {refnote, notepath}
 }
