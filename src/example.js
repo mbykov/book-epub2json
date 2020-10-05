@@ -43,7 +43,7 @@ async function start(bpath, write) {
   log('_descr:', descr)
 
   docs.forEach(doc=> {
-    if (doc.level > -1) log('_level:', doc.level, doc.md.slice(0,25))
+    if (doc.level > -1) log('_level:', doc.level, doc.md.slice(0,35))
   })
 
   log('_docs: 100:', docs[100])
