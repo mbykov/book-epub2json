@@ -30,8 +30,10 @@ bpath = 'astronomy.epub'
 
 // bpath = 'The_Hindus.epub' // FAIL ========= вообще все v.?
 // bpath = 'The_Myth_of_Sisyphus.epub'
+// bpath = path.resolve(__dirname, '../../epub-samples', bpath)
 
-bpath = path.resolve(__dirname, '../../epub-samples', bpath)
+bpath = 'test.epub'
+bpath = path.resolve(__dirname, '../test/', bpath)
 
 async function start(bpath, write) {
   log('_epub2json-bpath_', bpath)
@@ -44,6 +46,7 @@ async function start(bpath, write) {
     if (doc.level > -1) log('_level:', doc.level, doc.md.slice(0,25))
   })
 
+  log('_docs: 100:', docs[100])
   log('_docs:', docs.length)
   log('_imgs', imgs.length)
 

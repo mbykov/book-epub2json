@@ -14,6 +14,7 @@ export async function epub2json(bpath) {
   let epub = await getEpub(bpath)
   let meta = epub.metadata
   let lang = meta.language
+  // log('____EPUB epub.metadata', epub.metadata)
   let iso = _.find(iso6393, iso=> iso.iso6391 == lang)
   if (iso) lang = iso.iso6393
   let descr = {type: 'epub', author: meta.creator, title: meta.title, lang: lang} // , description: meta
@@ -30,8 +31,9 @@ export async function epub2json(bpath) {
   // docs.unshift(title)
   // docs.unshift(author)
 
+
   // log('_META', epub.toc)
-  log('_EPUB-docs', docs.length)
+  // log('_EPUB-docs', docs)
   return {descr, docs, imgs: []}
 }
 
@@ -82,7 +84,8 @@ async function getMDs(epub) {
         let md = node.textContent.trim()
         md = cleanStr(md)
         if (!md) return
-        let doc = {_id: '', path: ''}
+        // let doc = {_id: '', path: ''}
+        let doc = {}
 
         // log('_N', node.nodeName)
         if (/H\d/.test(node.nodeName)) {
@@ -171,38 +174,40 @@ function zerofill(number, size) {
 }
 
 function cleanStr(str) {
-  return str.replace(/\n+/g, '\n').replace(/↵+/, '\n').replace(/  +/, ' ') // .replace(/\s+/, ' ')
+  // return str.replace(/\n+/g, '\n').replace(/↵+/, '\n').replace(/  +/, ' ') // .replace(/\s+/, ' ')
+  return str.replace(/\n+/g, ' ').replace(/↵+/, '\n').replace(/  +/, ' ') // .replace(/\s+/, ' ')
+  // todo: проверить - см Camus, La Chute - короткие строки имеющие \n в конце каждой
 }
 
-function structuredDocs(docs) {
-  const fillsize = docs.length.toString().length
-  let baredocs = []
-  let level = 0, levnumkey = {}, path = '00', counter = 0, filled, headstart = -1
-  let prevheader = {level: 0, path: '00'}
-  let parent = {level: 0, path: ''}
-  for (let doc of docs) {
-    if (doc.level > -1) {
-      level = doc.level
-      counter = 0
-      if (levnumkey[level] > -1) levnumkey[level] += 1
-      else levnumkey[level] = 0
-      doc.levnum = levnumkey[level] || 0
+// function structuredDocs(docs) {
+//   const fillsize = docs.length.toString().length
+//   let baredocs = []
+//   let level = 0, levnumkey = {}, path = '00', counter = 0, filled, headstart = -1
+//   let prevheader = {level: 0, path: '00'}
+//   let parent = {level: 0, path: ''}
+//   for (let doc of docs) {
+//     if (doc.level > -1) {
+//       level = doc.level
+//       counter = 0
+//       if (levnumkey[level] > -1) levnumkey[level] += 1
+//       else levnumkey[level] = 0
+//       doc.levnum = levnumkey[level] || 0
 
-      if (prevheader.level === level) path = [prevheader.path.slice(0,-1), levnumkey[level]].join('')
-      else if (prevheader.level < level) levnumkey[level] = 0, path = [prevheader.path, level, levnumkey[level]].join('')
-      else if (prevheader.level > level) {
-        parent = _.last(_.filter(baredocs, (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: '00'}
-        path = [parent.path, level, levnumkey[level]].join('')
-      }
-      prevheader = doc
-    }
+//       if (prevheader.level === level) path = [prevheader.path.slice(0,-1), levnumkey[level]].join('')
+//       else if (prevheader.level < level) levnumkey[level] = 0, path = [prevheader.path, level, levnumkey[level]].join('')
+//       else if (prevheader.level > level) {
+//         parent = _.last(_.filter(baredocs, (bdoc, idy)=> { return bdoc.level < doc.level  })) || {level: 0, path: '00'}
+//         path = [parent.path, level, levnumkey[level]].join('')
+//       }
+//       prevheader = doc
+//     }
 
-    doc.path = path
-    filled = zerofill(counter, fillsize)
-    if (!doc._id) doc._id = [path, filled].join('-')
+//     doc.path = path
+//     filled = zerofill(counter, fillsize)
+//     if (!doc._id) doc._id = [path, filled].join('-')
 
-    counter++
-    prevheader.size = counter
-    baredocs.push(doc)
-  }
-}
+//     counter++
+//     prevheader.size = counter
+//     baredocs.push(doc)
+//   }
+// }
