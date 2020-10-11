@@ -22,7 +22,6 @@ export async function epub2json(bpath) {
   let chapters = toc.map(chapter=> {return { id: chapter.id, title: chapter.title }})
   // log('_chapters', chapters)
 
-
   let docs
   try {
     docs = await getMDs(epub, chapters)
@@ -30,7 +29,7 @@ export async function epub2json(bpath) {
     log('____EPUB IMPORT ERR', err)
     docs = []
   }
-  let zerodoc = {level: 3, md: [descr.author, descr.title].join(', ')}
+  let zerodoc = {level: 1, md: [descr.author, descr.title].join(', ')}
   docs.unshift(zerodoc)
 
   // log('_META-TOC', epub.toc)
@@ -56,7 +55,7 @@ async function getMDs(epub, chapters) {
   for await (let flowchapter of epub.flow) {
     let chapter = chapters.find(chapter=> chapter.id == flowchapter.id)
     if (chapter) {
-      let titledoc = {level: 3, md: chapter.title}
+      let titledoc = {level: 2, md: chapter.title}
       docs.push(titledoc)
     }
 

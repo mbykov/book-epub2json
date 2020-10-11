@@ -16,23 +16,16 @@ let bpath = 'file-1.epub'
 
 bpath = path.resolve(__dirname, '../test', bpath)
 
-// fns - FAILED
-
 // bpath = 'Quick-Start-Guide.epub'
 // bpath = 'aliceDynamic.epub'
 // bpath = 'epub30-spec.epub'
 
-// == fns
+// bpath = 'Braginskaya.epub'
 bpath = 'Popular-scientific-lectures.epub'
 bpath = 'Being_Different.epub'
 bpath = 'astronomy.epub'
-// bpath = 'Braginskaya.epub'
-
-// bpath = 'The_Hindus.epub' // FAIL ========= вообще все v.?
-// bpath = 'The_Myth_of_Sisyphus.epub'
-// bpath = path.resolve(__dirname, '../../epub-samples', bpath)
-
 bpath = 'test.epub'
+bpath = 'La peste - Albert Camus.epub'
 bpath = path.resolve(__dirname, '../test/', bpath)
 
 async function start(bpath, write) {
