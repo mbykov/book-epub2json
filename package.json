@@ -1,5 +1,5 @@
 {
-  "name": "epub2json",
+  "name": "book-epub2json",
   "version": "0.9.0",
   "main": "dist/index.js",
   "scripts": {
