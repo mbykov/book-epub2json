@@ -4,11 +4,6 @@ import { epub2json } from "./index";
 const log = console.log
 const path = require("path")
 
-// notes:
-// v.2 - Popular-scientific-lectures.epub; gutenberg
-// v.3 - нет хорошего примера, но есть описание про aside
-//
-
 let bpath = 'file-1.epub'
 // bpath = 'file-1-no-toc.epub'
 // bpath = 'file-e.epub'
@@ -16,22 +11,17 @@ let bpath = 'file-1.epub'
 
 bpath = path.resolve(__dirname, '../test', bpath)
 
-// bpath = 'Quick-Start-Guide.epub'
-// bpath = 'aliceDynamic.epub'
-// bpath = 'epub30-spec.epub'
-
-// bpath = 'Braginskaya.epub'
 bpath = 'Popular-scientific-lectures.epub'
 bpath = 'Being_Different.epub'
 bpath = 'astronomy.epub'
 bpath = 'test.epub'
 bpath = 'La peste - Albert Camus.epub'
+bpath = 'Orwell, George - Nineteen Eighty-Four (Penguin, 2003).epub'
 bpath = path.resolve(__dirname, '../test/', bpath)
 
 async function start(bpath, write) {
   log('_epub2json-bpath_', bpath)
   let {descr, docs, imgs} = await epub2json(bpath)
-  // if (!docs) log('_ERR MESS', descr); return
 
   log('_descr:', descr)
 
@@ -39,7 +29,7 @@ async function start(bpath, write) {
     if (doc.level > -1) log('_level:', doc.level, doc.md.slice(0,35))
   })
 
-  log('_docs: 100:', docs[100])
+  log('_docs: 100:', docs.slice(1000,1010))
   log('_docs:', docs.length)
   log('_imgs', imgs.length)
 
