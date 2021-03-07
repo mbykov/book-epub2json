@@ -22,9 +22,9 @@ let bpath = test.epub'
 
 async function start(bpath) {
   let {descr, docs, imgs} = await epub2json(bpath)
-  log('_descr:', descr)
-  log('_docs:', docs.length)
-  log('_imgs', imgs.length)
+  console.log('_descr:', descr)
+  console.log('_docs:', docs.length)
+  console.log('_imgs:', imgs.length)
 }
 ```
 ## other helper modules for **diglossa.js**:
