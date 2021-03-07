@@ -16,8 +16,7 @@ yarn start
 ## API
 
 ```json
-import { epub2json } from "./index";
-const path = require("path")
+import { epub2json } from "./index"
 let bpath = test.epub'
 
 async function start(bpath) {
@@ -27,6 +26,8 @@ async function start(bpath) {
   console.log('_imgs:', imgs.length)
 }
 ```
+Note: no errors, don't know why Github highlights some code in red
+
 ## other helper modules for **diglossa.js**:
 
 ```json
