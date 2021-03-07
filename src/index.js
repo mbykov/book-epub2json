@@ -14,13 +14,11 @@ export async function epub2json(bpath) {
   let epub = await getEpub(bpath)
   let meta = epub.metadata
   let lang = meta.language
-  // log('____EPUB epub.metadata', epub.manifest)
   let iso = _.find(iso6393, iso=> iso.iso6391 == lang)
   if (iso) lang = iso.iso6393
   let descr = {type: 'epub', author: meta.creator, title: meta.title, lang: lang} // , description: meta
   let toc = _.filter(epub.manifest, chapter=> chapter.order)
   let chapters = toc.map(chapter=> {return { id: chapter.id, title: chapter.title }})
-  // log('_chapters', chapters)
 
   let docs
   try {
@@ -32,8 +30,6 @@ export async function epub2json(bpath) {
   let zerodoc = {level: 1, md: [descr.author, descr.title].join(', ')}
   docs.unshift(zerodoc)
 
-  // log('_META-TOC', epub.toc)
-  // log('_EPUB-docs', docs)
   return {descr, docs, imgs: []}
 }
 
@@ -60,29 +56,20 @@ async function getMDs(epub, chapters) {
     }
 
     let html  = await getChapter(epub, flowchapter.id)
-    // log('_HTML====================================\n', flowchapter.id, html.length)
     html = html.replace(/\/>/g, '/></a>') // jsdom xhtml feature
 
     let docid = 0
     const dom = new JSDOM(html)
-    // dom = new JSDOM(html, {contentType: "application/xhtml+xml"})
-    // dom = new JSDOM(html, {contentType: "text/html"})
 
     loop(dom.window.document.body)
     function loop(node){
       let nodes = node.childNodes;
-      // let first = true
       nodes.forEach(function(node) {
         if (!node.textContent) return
         let md = node.textContent.trim()
         md = cleanStr(md)
         if (!md) return
-        // let doc = {_id: '', path: ''}
         let doc = {}
-        // if (first && chIDs.includes(flowchapter.id)) {
-        //   doc.level = 3
-        //   first = false
-        // }
 
         if (/H\d/.test(node.nodeName)) {
           doc.level = node.nodeName.slice(1)*1
@@ -100,13 +87,11 @@ async function getMDs(epub, chapters) {
             doc._id = ['ref', pid].join('-')
             doc.footnote = true
           } else {
-            // let aels = node.querySelectorAll('a') // electron security violation
             let aels = _.filter(node.childNodes, node=> node.nodeName == 'A')
             _.each(aels, ael=> {
               let {refnote, notepath} = getRefnote(ael)
               if (!notepath) return
               if (!doc.refnote) doc.refnote = {}
-              // doc.refnote[refnote] = ['ref', notepath].join('-')
               doc.refnote[refnote] = notepath
               fns.push(notepath)
             })
@@ -169,7 +154,5 @@ function zerofill(number, size) {
 }
 
 function cleanStr(str) {
-  // return str.replace(/\n+/g, '\n').replace(/↵+/, '\n').replace(/  +/, ' ') // .replace(/\s+/, ' ')
   return str.replace(/\n+/g, ' ').replace(/↵+/, '\n').replace(/  +/, ' ') // .replace(/\s+/, ' ')
-  // todo: проверить - см Camus, La Chute - короткие строки имеющие \n в конце каждой
 }
