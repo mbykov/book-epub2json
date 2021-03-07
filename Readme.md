@@ -16,7 +16,7 @@ yarn start
 ## API
 
 ```json
-import { epub2json } from "./epub2json"
+import { epub2json } from "./book-epub2json"
 let bpath = test.epub'
 
 async function start(bpath) {
