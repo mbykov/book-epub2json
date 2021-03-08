@@ -8,7 +8,6 @@ const { JSDOM } = jsdom
 
 const iso6393 = require('iso-639-3')
 const log = console.log
-import { htmlChunk} from './html'
 
 export async function epub2json(bpath) {
   let epub = await getEpub(bpath)
